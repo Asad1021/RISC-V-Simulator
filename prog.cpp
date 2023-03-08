@@ -19,6 +19,7 @@ using namespace std;
 
 
 #pragma region DECODE_RELATED_DATA
+
 typedef struct if_de_handshake{
     int Op1,Op2;//oprands
     int Rd;//RF write destinstion
@@ -29,6 +30,7 @@ typedef struct if_de_handshake{
     int mem_OP;//0:No operation 1:write 2:read
     int RFWrite;
 } If_DE;
+
 If_DE handShake;
 
 int RF[32];//Register file
@@ -210,8 +212,7 @@ class Decode
                     {
                         rs1[i]=currentInstruction[i+15];
                         rs2[i]=currentInstruction[i+20];
-                        rd[i]=currentInstruction[i+7];
-                        
+                        rd[i]=currentInstruction[i+7]; 
                     }
 
                     handShake.Op1 = RF[rs1.to_ulong()];//value of rs1
@@ -283,16 +284,139 @@ class Decode
                     {
                         imm[i] = currentInstruction[i+20];
                     }
-                    
 
                     handShake.Op1 = RF[rs1.to_ulong()];//value of rs1
                     handShake.Op2 = imm.to_ulong();//value of rs2
-                    handShake.Rd = rd.to_ulong();//address of RD   
+                    handShake.Rd = rd.to_ulong();//address of RD
                 }
                 break;
-    
+
+            case 'S':
+                {
+                    handShake.ALU_Operation=0;//add
+
+                    bitset<3> func3;
+                    func3[0]=currentInstruction[12];
+                    func3[1]=currentInstruction[13];
+                    func3[2]=currentInstruction[14];
+
+                    switch (func3.to_ulong())
+                    {
+                    case '0':
+                        {
+                            
+                        }
+                        break;
+                    case '1':
+                        {
+                            
+                        }
+                        break;
+                    case '2':
+                        {
+                            
+                        }
+                        break;
+                    
+                    default:
+                        break;
+                    }
+
+                    bitset <5> rs1;
+                    bitset <5> rs2;
+
+                    for (int i = 0; i < 5; i++)
+                    {
+                        rs1[i]=currentInstruction[i+15];
+                        rs2[i]=currentInstruction[i+20];
+                    }
+
+                }
+                break;
             case 'B':
                {
+                    handShake.ALU_Operation=1;//subtract
+                    handShake.branch_target_select=0;//immB
+                    handShake.RFWrite= 0;
+                    handShake.mem_OP=0;                    
+
+                    bitset <5> rs1;
+                    bitset <5> rs2;
+
+                    for (int i = 0; i < 5; i++)
+                    {
+                        rs1[i]=currentInstruction[i+15];
+                        rs2[i]=currentInstruction[i+20];
+                    }
+
+                    handShake.Op1 = RF[rs1.to_ulong()];
+                    handShake.Op2 = RF[rs2.to_ulong()];
+
+                    bitset<14> immB;
+
+                    immB[0]=0;//lsb is 0
+                    immB[11]=currentInstruction[7];
+                    immB[12]=currentInstruction[31];
+
+                    for (int i = 1; i < 5; i++)
+                    {
+                        immB[i] = currentInstruction[7+i];
+                    }
+
+                    for (int i = 5; i < 11; i++)
+                    {
+                        immB[i] = currentInstruction[20+i];
+                    }
+
+                    handShake.immB = immB.to_ulong();
+
+                    bitset<3> func3;
+                    func3[0]=currentInstruction[12];
+                    func3[1]=currentInstruction[13];
+                    func3[2]=currentInstruction[14];
+
+                    switch (func3.to_ulong())
+                    {
+                    case 0:
+                        {
+
+                        }
+                        break;
+                    case 1:
+                        {
+                            
+                        }
+                        break;
+                    case 4:
+                        {
+                            
+                        }
+                        break;
+                    case 5:
+                        {
+                            
+                        }
+                        break;
+                    case 6:
+                        {
+                            
+                        }
+                        break;
+                    case 7:
+                        {
+                            
+                        }
+                        break;
+                    
+                    default:
+                    {
+                        cerr << "Error: Could not identify instruction.\n";
+                        exit(0);
+                    }
+                        break;
+                    }
+                    
+
                 
                }
                 break;
