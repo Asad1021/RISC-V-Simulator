@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <bitset> 
+#include <bitset>
 
 using namespace std;
 
@@ -472,7 +472,7 @@ typedef struct ex_ma_handshake{
 EX_MA hs_ex_ma;
 
 void execute(int op1, int op2, int ALU_operation){
-    int ALU_result;
+  
     switch (ALU_operation){
     case 0:     //it will perform addition in ALU
     hs_ex_ma.ALU_result=op1+op2;
@@ -502,6 +502,46 @@ void execute(int op1, int op2, int ALU_operation){
     case 8:     //it will perform shift less than in ALU
     
     break;
+
+    case 9:     //will check for beq
+    hs_ex_ma.ALU_result==op1-op2;
+    if (hs_ex_ma.ALU_result==0){
+        hs_ex_ma.isBranch=1;
+    }
+    else
+        hs_ex_ma.isBranch=0;
+    break;
+
+    case 10:     //will check for bne
+    hs_ex_ma.ALU_result==op1-op2;
+    if (hs_ex_ma.ALU_result==0){
+        hs_ex_ma.isBranch=0;
+    }
+    else
+        hs_ex_ma.isBranch=1;
+    break;
+
+
+    case 11:     //will check for blt
+    hs_ex_ma.ALU_result==op1-op2;
+    if (hs_ex_ma.ALU_result<0){
+        hs_ex_ma.isBranch=1;
+    }
+    else
+        hs_ex_ma.isBranch=0;
+    break;
+    
+
+    case 12:     //will check for bge
+    hs_ex_ma.ALU_result==op1-op2;
+    if (hs_ex_ma.ALU_result>=0){
+        hs_ex_ma.isBranch=1;
+    }
+    else
+        hs_ex_ma.isBranch=0;
+    break;
+
+
     default:
     cout<<"some error has occured in decode!!";
 
