@@ -20,11 +20,18 @@ using namespace std;
 
 #pragma region DECODE_RELATED_DATA
 typedef struct if_de_handshake{
-    
+    int Op1,Op2;//oprands
+    int Rd;//RF write destinstion
+    int imm,immU,immS,immJ,immB;
+    int branch_target_select;//0 for immB; 1 for immJ
+    int Result_select;//0:PC+4 ; 1:ImmU; 2:Load data; 3: ALU result
+    int ALU_Operation;//0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt
+    int mem_OP;//0:No operation 1:write 2:read
+    int RFWrite;
+} If_DE;
+If_DE handShake;
 
-} IfDE;
-
-IfDE hs1;
+int RF[32];//Register file
 #pragma endregion DECODE_RELATED_DATA
 
 class Fetch
@@ -138,13 +145,149 @@ class Decode
         {
             case 'R':
                {
+                    bitset<3> func3;
+                    func3[0]=currentInstruction[12];
+                    func3[1]=currentInstruction[13];
+                    func3[2]=currentInstruction[14];
+
+                    switch (func3.to_ulong())//alu op:: 0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt
+                    {
+                    case 0:
+                    {
+                        if (currentInstruction[30])
+                        {
+                            handShake.ALU_Operation=1;
+                        }
+                        else{
+                            handShake.ALU_Operation=0;
+                            
+                        }
+                    }
+                        break;
+                    case 4:
+                        handShake.ALU_Operation=2;
+                    
+                        break;
+                    case 6:
+                        handShake.ALU_Operation=3;
+                        break;
+                    case 7:
+                        handShake.ALU_Operation=4;
+                        break;
+                    case 1:
+                        handShake.ALU_Operation=5;
+                        break;
+                    case 5:
+                        {
+                            if (currentInstruction[30])
+                            {
+                                handShake.ALU_Operation=7;
+                            }
+                            else{
+                                handShake.ALU_Operation=6;
+                            }
+                        }
+                        break;
+                    case 2:
+                        handShake.ALU_Operation=8;
+                        break;
+                                          
+                    default:
+                        break;
+                    }
+
+                    // cout<<"operation is"<<handShake.ALU_Operation;
+
+                    handShake.Result_select=3;
+                    handShake.mem_OP=0;
+                    handShake.RFWrite=1;
+
+                    bitset <5> rs1;
+                    bitset <5> rs2;
+                    bitset <5> rd;
+
+                    for (int i = 0; i < 5; i++)
+                    {
+                        rs1[i]=currentInstruction[i+15];
+                        rs2[i]=currentInstruction[i+20];
+                        rd[i]=currentInstruction[i+7];
+                        
+                    }
+
+                    handShake.Op1 = RF[rs1.to_ulong()];//value of rs1
+                    handShake.Op2 = RF[rs2.to_ulong()];//value of rs2
+                    handShake.Rd = rd.to_ulong();//address of RD
                 
                }
                 break;
 
             case 'I':
                 {
+                    bitset<3> func3;
+                    func3[0]=currentInstruction[12];
+                    func3[1]=currentInstruction[13];
+                    func3[2]=currentInstruction[14];
+
+                    switch (func3.to_ulong())//alu op:: 0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt
+                    {
+                    case 0:
+                        handShake.ALU_Operation=0;
+                        break;
+                    case 4:
+                        handShake.ALU_Operation=2;
                     
+                        break;
+                    case 6:
+                        handShake.ALU_Operation=3;
+                        break;
+                    case 7:
+                        handShake.ALU_Operation=4;
+                        break;
+                    case 1:
+                        handShake.ALU_Operation=5;
+                        break;
+                    case 5:
+                        {
+                            if (currentInstruction[30])
+                            {
+                                handShake.ALU_Operation=7;
+                            }
+                            else{
+                                handShake.ALU_Operation=6;
+                            }
+                        }
+                        break;
+                    case 2:
+                        handShake.ALU_Operation=8;
+                        break;
+                                          
+                    default:
+                        break;
+                    }
+
+                    handShake.Result_select=3;
+                    handShake.mem_OP=0;
+                    handShake.RFWrite=1;
+
+                    bitset <5> rs1;
+                    bitset <5> rd;
+
+                    for (int i = 0; i < 5; i++)
+                    {
+                        rs1[i]=currentInstruction[i+15];
+                        rd[i]=currentInstruction[i+7];     
+                    }
+
+                    bitset <12> imm;
+                    for (int i = 0; i < 12; i++)
+                    {
+                        imm[i] = currentInstruction[i+20];
+                    }
+                    
+
+                    handShake.Op1 = RF[rs1.to_ulong()];//value of rs1
+                    handShake.Op2 = imm.to_ulong();//value of rs2
+                    handShake.Rd = rd.to_ulong();//address of RD   
                 }
                 break;
     
@@ -177,6 +320,7 @@ class Decode
         
 
     }
+
 
     public:
 
