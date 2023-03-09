@@ -27,7 +27,7 @@ typedef struct if_de_hs_de_ex{
     int imm,immU,immS,immJ,immB;
     int branch_target_select;//0 for immB; 1 for immJ
     int Result_select;//0:PC+4 ; 1:ImmU; 2:Load data; 3: ALU result
-    int ALU_Operation;//0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt 9:beq 10:bne 11:blt 12:bge 13:lui
+    int ALU_Operation;//0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt 9:beq 10:bne 11:blt 12:bge 13:lui 14:jal
     int mem_OP;//0:No operation 1:write 2:read
     int RFWrite;//0: no write operation 1:for write operation
     int Store_op;//0:sb 1:sh 2:sw
@@ -470,6 +470,40 @@ class Decode
             
             case 'J':
                 {
+                    bitset <21> ImmJ;
+
+                    for (int i = 12; i <20 ; i++)
+                    {
+                        ImmJ[i]=currentInstruction[i];
+                    }
+
+                    ImmJ[11]=currentInstruction[20];
+                    ImmJ[0]=0;
+
+                    for (int i = 1; i < 11; i++)
+                    {
+                        ImmJ[i]=currentInstruction[i+20];
+                    }
+
+                    ImmJ[20]=currentInstruction[31];
+
+                    // cout<<"IMMj="<<ImmJ;
+
+                    bitset <5> rd;
+
+                    for (int i = 0; i < 5; i++)
+                    {
+                        rd[i]=currentInstruction[i+7];
+                    }
+                    
+
+                    hs_de_ex.immJ = ImmJ.to_ulong();
+                    hs_de_ex.mem_OP=0;
+                    hs_de_ex.branch_target_select=1;//immj
+                    hs_de_ex.Rd = rd.to_ulong();
+                    hs_de_ex.ALU_Operation=14;//jal
+                    hs_de_ex.Result_select=0;
+                    hs_de_ex.RFWrite=1;
                     
                 }
                 break;
