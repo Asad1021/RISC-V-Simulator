@@ -30,7 +30,7 @@ typedef struct if_de_hs_de_ex{
     int ALU_Operation;//0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt 9:beq 10:bne 11:blt 12:bge 13:lui 14:jal
     int mem_OP;//0:No operation 1:write 2:read
     int RFWrite;//0: no write operation 1:for write operation
-    int Store_op;//0:sb 1:sh 2:sw
+    int Store_op;//0:sb 1:sh 2:sw//to be used by mem to decide how many bit to store
     int Mem_Op2;//OP2 input for memmory
 } If_DE;
 
@@ -51,7 +51,7 @@ class Fetch
             string pc_str = read();
             currentPCAdd = HexStringToBitset(pc_str);
             hex_str = read();
-            addToBitset();
+            addToBitset();//currentPCAdd+=4//it has to be next address
         }
         else if(flag == 1)
         {
@@ -461,17 +461,25 @@ class Decode
                 }
 
                 hs_de_ex.immU = immU.to_ulong();
+                hs_de_ex.Result_select= 1;
                 hs_de_ex.mem_OP=0;
                 hs_de_ex.RFWrite=1;
-                hs_de_ex.Result_select= 1;
-                                
+
+                bitset<5> rd;
+
+                for (int i = 0; i < 5; i++)
+                {
+                    rd[i]=currentInstruction[i+7];
+                }
+
+                hs_de_ex.Rd = rd.to_ulong();
                 
                }
                 break;
             
             case 'J':
                 {
-                    bitset <21> ImmJ;
+                    bitset <21> ImmJ(0);
 
                     for (int i = 12; i <20 ; i++)
                     {
@@ -677,8 +685,13 @@ void execute(){
     default:
     cout<<"some error has occured in decode!!";
     }
+<<<<<<< Updated upstream
 }
 
+=======
+
+}
+>>>>>>> Stashed changes
 int main()
 {
     make_file();
