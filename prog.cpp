@@ -574,7 +574,7 @@ void execute(){
     int ALU_operation=hs_de_ex.ALU_Operation;
 
     switch (ALU_operation){
-    case 0:     //it will perform addition in ALU also will compute effective address for S instruction
+    case 0:     //it will perform addition in ALU also will compute effective address for S and Load instruction
     hs_ex_ma.ALU_result=op1+op2;
     break;
     case 1:     //it will perform subtraction in ALU
@@ -665,7 +665,7 @@ void execute(){
         break;
     
     
-    case 14:
+    case 14: //JAL 
     nextPCAdd=currentPCAdd.to_ulong()+4;
     nextPCAdd=hs_de_ex.immJ+currentPCAdd.to_ulong(); //making pc=pc+immj
     break;
@@ -677,7 +677,11 @@ void execute(){
     nextPCAdd=op1+op2; //making pc=pc+immj??**************************GADBAD
     //must give rd in jalr for xi=pc+4
     break;
+    case 16://auipc done
+    hs_ex_ma.ALU_result=currentPCAdd.to_ulong()+hs_de_ex.immU;//to be stored in rd...PC+imm<<12
 
+    
+    break;
   
 
 
