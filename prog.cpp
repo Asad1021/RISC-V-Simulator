@@ -90,6 +90,7 @@ class Fetch
         unsigned long hex_to_dec_val = stoul(hex_instr, nullptr, 16);
         bitset<32> binary_num(hex_to_dec_val);
         return binary_num;
+        
     }
 
     public:
@@ -534,51 +535,84 @@ void reset_pointer()
 {
 
 }
-
-typedef struct ex_ma_hs_de_ex{
-   
+//#########################################################################################
+typedef struct ex_ma_handshake{
+   //handshake register between execute and memory access 
     int ALU_result;//0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt
     int isBranch;//will tell whether to branch or not
 
 } EX_MA;
 EX_MA hs_ex_ma;
 
-void execute(int op1, int op2, int ALU_operation){
-  
+int srl(int op1_int, int op2){
+    //this will ensure logical right shift in case of SRL instruction
+    bitset<32>op1=op1_int;//convert input decimal number to a bitset
+    bitset<32>op1_shifted;//local bitset for storing shifted bitset
+    for(int i=0;i<32;i++){
+        op1_shifted[i]=op1[i+op2];
+        if(i+op2==31){
+            break;
+        }
+    }
+   int shifted_dec=op1_shifted.to_ulong();//converting back the shifted bitset to integer
+   return shifted_dec;
+}
+
+
+void execute(){
+    int op1 =hs_de_ex.Op1;
+    int op2 =hs_de_ex.Op2;
+    int ALU_operation=hs_de_ex.ALU_Operation;
+
     switch (ALU_operation){
     case 0:     //it will perform addition in ALU
     hs_ex_ma.ALU_result=op1+op2;
     break;
     case 1:     //it will perform subtraction in ALU
     hs_ex_ma.ALU_result=op1-op2;
+    hs_ex_ma.isBranch=0;
     break;
     case 2:     //it will perform logical XOR in ALU
     hs_ex_ma.ALU_result=op1^op2;
+    hs_ex_ma.isBranch=0;
     break;
     case 3:     //it will perform logical OR in ALU
     hs_ex_ma.ALU_result=op1|op2;
+    hs_ex_ma.isBranch=0;
     break;
     case 4:     //it will perform logical AND in ALU
     hs_ex_ma.ALU_result=op1&op2;
+    hs_ex_ma.isBranch=0;
     break;
     case 5:     //it will perform shift left logical in ALU
     hs_ex_ma.ALU_result=op1<<op2;
+    hs_ex_ma.isBranch=0;
     break;
     case 6:     //it will perform shift right logical in ALU
-    hs_ex_ma.ALU_result=op1>>op2;
+    hs_ex_ma.ALU_result=srl(op1,op2);
+    hs_ex_ma.isBranch=0;
     break;
     case 7:     //it will perform shift right arithmetic in ALU
-    
+    hs_ex_ma.ALU_result=op1>>op2;
+    hs_ex_ma.isBranch=0;
     break;
     
-    case 8:     //it will perform shift less than in ALU
-    
+    case 8:     //it will perform set less than in ALU
+    if(op1<op2){
+        hs_ex_ma.ALU_result=1;
+    }
+    else hs_ex_ma.ALU_result=0;
+    hs_ex_ma.isBranch=0;
     break;
+    //for branching, we are assigning 0 for no branch, 1 for branch target adress, and 2 for ALU result, i.e for JALR
 
     case 9:     //will check for beq
     hs_ex_ma.ALU_result==op1-op2;
     if (hs_ex_ma.ALU_result==0){
         hs_ex_ma.isBranch=1;
+
+        nextPCAdd=hs_de_ex.immB+currentPCAdd.to_ulong(); //making pc=pc+immb
+       
     }
     else
         hs_ex_ma.isBranch=0;
@@ -589,8 +623,10 @@ void execute(int op1, int op2, int ALU_operation){
     if (hs_ex_ma.ALU_result==0){
         hs_ex_ma.isBranch=0;
     }
-    else
+    else{
         hs_ex_ma.isBranch=1;
+        nextPCAdd=hs_de_ex.immB+currentPCAdd.to_ulong(); //making pc=pc+immb
+    }
     break;
 
 
@@ -598,6 +634,7 @@ void execute(int op1, int op2, int ALU_operation){
     hs_ex_ma.ALU_result==op1-op2;
     if (hs_ex_ma.ALU_result<0){
         hs_ex_ma.isBranch=1;
+        nextPCAdd=hs_de_ex.immB+currentPCAdd.to_ulong(); //making pc=pc+immb
     }
     else
         hs_ex_ma.isBranch=0;
@@ -608,17 +645,26 @@ void execute(int op1, int op2, int ALU_operation){
     hs_ex_ma.ALU_result==op1-op2;
     if (hs_ex_ma.ALU_result>=0){
         hs_ex_ma.isBranch=1;
+        nextPCAdd=hs_de_ex.immB+currentPCAdd.to_ulong(); //making pc=pc+immb
     }
     else
         hs_ex_ma.isBranch=0;
     break;
+
+    case 13:  //jalr
+    hs_ex_ma.ALU_result=op1+op2;
+    hs_ex_ma.isBranch=2;
+    nextPCAdd=hs_de_ex.immJ+currentPCAdd.to_ulong(); //making pc=pc+immb
+
+    case 14:
+    case 15:
+
 
 
     default:
     cout<<"some error has occured in decode!!";
     }
 
-}
 
 int main()
 {
