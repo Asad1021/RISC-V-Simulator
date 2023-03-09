@@ -13,8 +13,7 @@ using namespace std;
 
 
 #pragma region INSTRUCTION_RELATED_DATA 
-    bitset<32> currentPCAdd(0);
-    bitset<32> nextPCAdd(0);
+    int currentPCAdd = 0;
     bitset<32> currentInstruction;
 #pragma endregion INSTRUCTION_RELATED_DATA 
 
@@ -39,64 +38,27 @@ int RF[32];//Register file
 
 class Fetch
 {
-    bitset<32> fetch_instruction(int flag)
-    {
-        //the part b4 space PC address
-        string hex_str;
-        
-        if(flag == 0)
-        {
-            string pc_str = read();
-            currentPCAdd = HexStringToBitset(pc_str);
-            hex_str = read();
-            addToBitset();
-        }
-        else if(flag == 1)
-        {
-            currentPCAdd = nextPCAdd;
-            ifstream tempRead("input.mc");
-            string tempHexa;
-            tempRead>>tempHexa;
-            bitset<32> tempBitset(HexStringToBitset(tempHexa));
-            while(tempBitset != nextPCAdd)
-            {
-                tempRead>>tempHexa;
-                tempRead>>tempHexa;
-                tempBitset = HexStringToBitset(tempHexa); 
-            }
-
-            tempRead>>hex_str;
-        }
-        //stoul converts string of type 0x012312 to its decimal value
-        return HexStringToBitset(hex_str);
-
-    }
-    string read()
+    bitset<32> fetch_instruction()
     {
         string line;
+        //to ignore the first part before space
         readFile>>line;
-        return line;
-    }
-    void addToBitset()
-    {
-        currentPCAdd = currentPCAdd.to_ulong() + 4; // add 4 to the bitset
-        
-    }
-
-    bitset<32> HexStringToBitset(string hex_instr)
-    {
-        unsigned long hex_to_dec_val = stoul(hex_instr, nullptr, 16);
+        readFile>>line;
+        string hex_str = line;
+        //stoul converts string of type 0x012312 to its decimal value
+        unsigned long hex_to_dec_val = stoul(hex_str, nullptr, 16);
         bitset<32> binary_num(hex_to_dec_val);
+        cout<<binary_num;
         return binary_num;
-    }
 
-    public:
-    Fetch(int flag = 0)
-    {
-       
-        currentInstruction = fetch_instruction(flag);
     }
-    
+    public:
+    Fetch()
+    {
+        //everytime object created increase the value of PC Address by 4
+        currentPCAdd += 4;
+        currentInstruction = fetch_instruction();
+    }
 
 };
 //makes .mc file
@@ -125,14 +87,14 @@ void make_file()
         
         while (getline(infile, line))
         {
-            cout << "0x" << hex<<offset << " " << line << endl; 
+            // cout << "0x" << offset << " " << line << endl; 
             //skip 0x part
             string hex_str = line;
             //stoul converts string of type 0x012312 to its decimal value
             unsigned long hex_to_dec_val = stoul(hex_str, nullptr, 16);
             bitset<32> binary_num(hex_to_dec_val);
-            cout<<binary_num<<endl;
-            outfile << "0x" <<hex<<offset << " " << line << endl;
+            // cout<<binary_num<<endl;
+            outfile << "0x" << offset << " " << line << endl;
             offset += 4; // increase offset by 4 characters
         }
 
@@ -494,9 +456,102 @@ class Decode
 };
 
 void reset_pointer()
+
 {
 
 }
+
+
+
+typedef struct ex_ma_handshake{
+   
+    int ALU_result;//0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt
+    int isBranch;//will tell whether to branch or not
+
+} EX_MA;
+EX_MA hs_ex_ma;
+
+void execute(int op1, int op2, int ALU_operation){
+  
+    switch (ALU_operation){
+    case 0:     //it will perform addition in ALU
+    hs_ex_ma.ALU_result=op1+op2;
+    break;
+    case 1:     //it will perform subtraction in ALU
+    hs_ex_ma.ALU_result=op1-op2;
+    break;
+    case 2:     //it will perform logical XOR in ALU
+    hs_ex_ma.ALU_result=op1^op2;
+    break;
+    case 3:     //it will perform logical OR in ALU
+    hs_ex_ma.ALU_result=op1|op2;
+    break;
+    case 4:     //it will perform logical AND in ALU
+    hs_ex_ma.ALU_result=op1&op2;
+    break;
+    case 5:     //it will perform shift left logical in ALU
+    hs_ex_ma.ALU_result=op1<<op2;
+    break;
+    case 6:     //it will perform shift right logical in ALU
+    hs_ex_ma.ALU_result=op1>>op2;
+    break;
+    case 7:     //it will perform shift right arithmetic in ALU
+    
+    break;
+    
+    case 8:     //it will perform shift less than in ALU
+    
+    break;
+
+    case 9:     //will check for beq
+    hs_ex_ma.ALU_result==op1-op2;
+    if (hs_ex_ma.ALU_result==0){
+        hs_ex_ma.isBranch=1;
+    }
+    else
+        hs_ex_ma.isBranch=0;
+    break;
+
+    case 10:     //will check for bne
+    hs_ex_ma.ALU_result==op1-op2;
+    if (hs_ex_ma.ALU_result==0){
+        hs_ex_ma.isBranch=0;
+    }
+    else
+        hs_ex_ma.isBranch=1;
+    break;
+
+
+    case 11:     //will check for blt
+    hs_ex_ma.ALU_result==op1-op2;
+    if (hs_ex_ma.ALU_result<0){
+        hs_ex_ma.isBranch=1;
+    }
+    else
+        hs_ex_ma.isBranch=0;
+    break;
+    
+
+    case 12:     //will check for bge
+    hs_ex_ma.ALU_result==op1-op2;
+    if (hs_ex_ma.ALU_result>=0){
+        hs_ex_ma.isBranch=1;
+    }
+    else
+        hs_ex_ma.isBranch=0;
+    break;
+
+
+    default:
+    cout<<"some error has occured in decode!!";
+
+
+    }
+
+}
+
+
+
 int main()
 {
     make_file();
