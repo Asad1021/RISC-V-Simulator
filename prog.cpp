@@ -21,18 +21,20 @@ using namespace std;
 
 #pragma region DECODE_RELATED_DATA
 
-typedef struct if_de_handshake{
+typedef struct if_de_hs_de_ex{
     int Op1,Op2;//oprands
     int Rd;//RF write destinstion
     int imm,immU,immS,immJ,immB;
     int branch_target_select;//0 for immB; 1 for immJ
     int Result_select;//0:PC+4 ; 1:ImmU; 2:Load data; 3: ALU result
-    int ALU_Operation;//0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt
+    int ALU_Operation;//0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt 9:beq 10:bne 11:blt 12:bge 13:lui
     int mem_OP;//0:No operation 1:write 2:read
-    int RFWrite;
+    int RFWrite;//0: no write operation 1:for write operation
+    int Store_op;//0:sb 1:sh 2:sw
+    int Mem_Op2;//OP2 input for memmory
 } If_DE;
 
-If_DE handShake;
+If_DE hs_de_ex;
 
 int RF[32];//Register file
 #pragma endregion DECODE_RELATED_DATA
@@ -93,7 +95,6 @@ class Fetch
     public:
     Fetch(int flag = 0)
     {
-       
         currentInstruction = fetch_instruction(flag);
     }
     
@@ -196,51 +197,51 @@ class Decode
                     {
                         if (currentInstruction[30])
                         {
-                            handShake.ALU_Operation=1;
+                            hs_de_ex.ALU_Operation=1;
                         }
                         else{
-                            handShake.ALU_Operation=0;
+                            hs_de_ex.ALU_Operation=0;
                             
                         }
                     }
                         break;
                     case 4:
-                        handShake.ALU_Operation=2;
+                        hs_de_ex.ALU_Operation=2;
                     
                         break;
                     case 6:
-                        handShake.ALU_Operation=3;
+                        hs_de_ex.ALU_Operation=3;
                         break;
                     case 7:
-                        handShake.ALU_Operation=4;
+                        hs_de_ex.ALU_Operation=4;
                         break;
                     case 1:
-                        handShake.ALU_Operation=5;
+                        hs_de_ex.ALU_Operation=5;
                         break;
                     case 5:
                         {
                             if (currentInstruction[30])
                             {
-                                handShake.ALU_Operation=7;
+                                hs_de_ex.ALU_Operation=7;
                             }
                             else{
-                                handShake.ALU_Operation=6;
+                                hs_de_ex.ALU_Operation=6;
                             }
                         }
                         break;
                     case 2:
-                        handShake.ALU_Operation=8;
+                        hs_de_ex.ALU_Operation=8;
                         break;
                                           
                     default:
                         break;
                     }
 
-                    // cout<<"operation is"<<handShake.ALU_Operation;
+                    // cout<<"operation is"<<hs_de_ex.ALU_Operation;
 
-                    handShake.Result_select=3;
-                    handShake.mem_OP=0;
-                    handShake.RFWrite=1;
+                    hs_de_ex.Result_select=3;
+                    hs_de_ex.mem_OP=0;
+                    hs_de_ex.RFWrite=1;
 
                     bitset <5> rs1;
                     bitset <5> rs2;
@@ -253,9 +254,9 @@ class Decode
                         rd[i]=currentInstruction[i+7]; 
                     }
 
-                    handShake.Op1 = RF[rs1.to_ulong()];//value of rs1
-                    handShake.Op2 = RF[rs2.to_ulong()];//value of rs2
-                    handShake.Rd = rd.to_ulong();//address of RD
+                    hs_de_ex.Op1 = RF[rs1.to_ulong()];//value of rs1
+                    hs_de_ex.Op2 = RF[rs2.to_ulong()];//value of rs2
+                    hs_de_ex.Rd = rd.to_ulong();//address of RD
                 
                }
                 break;
@@ -270,43 +271,43 @@ class Decode
                     switch (func3.to_ulong())//alu op:: 0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt
                     {
                     case 0:
-                        handShake.ALU_Operation=0;
+                        hs_de_ex.ALU_Operation=0;
                         break;
                     case 4:
-                        handShake.ALU_Operation=2;
+                        hs_de_ex.ALU_Operation=2;
                     
                         break;
                     case 6:
-                        handShake.ALU_Operation=3;
+                        hs_de_ex.ALU_Operation=3;
                         break;
                     case 7:
-                        handShake.ALU_Operation=4;
+                        hs_de_ex.ALU_Operation=4;
                         break;
                     case 1:
-                        handShake.ALU_Operation=5;
+                        hs_de_ex.ALU_Operation=5;
                         break;
                     case 5:
                         {
                             if (currentInstruction[30])
                             {
-                                handShake.ALU_Operation=7;
+                                hs_de_ex.ALU_Operation=7;
                             }
                             else{
-                                handShake.ALU_Operation=6;
+                                hs_de_ex.ALU_Operation=6;
                             }
                         }
                         break;
                     case 2:
-                        handShake.ALU_Operation=8;
+                        hs_de_ex.ALU_Operation=8;
                         break;
                                           
                     default:
                         break;
                     }
 
-                    handShake.Result_select=3;
-                    handShake.mem_OP=0;
-                    handShake.RFWrite=1;
+                    hs_de_ex.Result_select=3;
+                    hs_de_ex.mem_OP=0;
+                    hs_de_ex.RFWrite=1;
 
                     bitset <5> rs1;
                     bitset <5> rd;
@@ -323,42 +324,24 @@ class Decode
                         imm[i] = currentInstruction[i+20];
                     }
 
-                    handShake.Op1 = RF[rs1.to_ulong()];//value of rs1
-                    handShake.Op2 = imm.to_ulong();//value of rs2
-                    handShake.Rd = rd.to_ulong();//address of RD
+                    hs_de_ex.Op1 = RF[rs1.to_ulong()];//value of rs1
+                    hs_de_ex.Op2 = imm.to_ulong();//value of rs2
+                    hs_de_ex.Rd = rd.to_ulong();//address of RD
                 }
                 break;
 
             case 'S':
                 {
-                    handShake.ALU_Operation=0;//add
-
+                    
                     bitset<3> func3;
                     func3[0]=currentInstruction[12];
                     func3[1]=currentInstruction[13];
                     func3[2]=currentInstruction[14];
-
-                    switch (func3.to_ulong())
-                    {
-                    case '0':
-                        {
-                            
-                        }
-                        break;
-                    case '1':
-                        {
-                            
-                        }
-                        break;
-                    case '2':
-                        {
-                            
-                        }
-                        break;
                     
-                    default:
-                        break;
-                    }
+                    hs_de_ex.ALU_Operation=0;//add
+                    hs_de_ex.Store_op = func3.to_ulong();
+                    hs_de_ex.mem_OP = 1;//write operation
+                    hs_de_ex.RFWrite=0;
 
                     bitset <5> rs1;
                     bitset <5> rs2;
@@ -368,15 +351,30 @@ class Decode
                         rs1[i]=currentInstruction[i+15];
                         rs2[i]=currentInstruction[i+20];
                     }
+
+                    
+                    bitset<12> immS;
+                     for (int i = 0; i < 5; i++)
+                     {
+                        immS[i] = currentInstruction[7+i];
+                     }
+
+                     for (int i = 5; i < 12; i++)
+                     {
+                        immS[i] = currentInstruction[i+20];
+                     }
+
+                     hs_de_ex.Op1 = RF[rs1.to_ulong()];
+                     hs_de_ex.Op2 = immS.to_ulong();
+                     hs_de_ex.Mem_Op2 = RF[rs2.to_ulong()];
 
                 }
                 break;
             case 'B':
                {
-                    handShake.ALU_Operation=1;//subtract
-                    handShake.branch_target_select=0;//immB
-                    handShake.RFWrite= 0;
-                    handShake.mem_OP=0;                    
+                    hs_de_ex.branch_target_select=0;//immB
+                    hs_de_ex.RFWrite= 0;
+                    hs_de_ex.mem_OP=0;                    
 
                     bitset <5> rs1;
                     bitset <5> rs2;
@@ -387,8 +385,8 @@ class Decode
                         rs2[i]=currentInstruction[i+20];
                     }
 
-                    handShake.Op1 = RF[rs1.to_ulong()];
-                    handShake.Op2 = RF[rs2.to_ulong()];
+                    hs_de_ex.Op1 = RF[rs1.to_ulong()];
+                    hs_de_ex.Op2 = RF[rs2.to_ulong()];
 
                     bitset<14> immB;
 
@@ -406,43 +404,34 @@ class Decode
                         immB[i] = currentInstruction[20+i];
                     }
 
-                    handShake.immB = immB.to_ulong();
+                    hs_de_ex.immB = immB.to_ulong();
 
                     bitset<3> func3;
                     func3[0]=currentInstruction[12];
                     func3[1]=currentInstruction[13];
                     func3[2]=currentInstruction[14];
 
-                    switch (func3.to_ulong())
+                    switch (func3.to_ulong())//aluOP== 9:beq 10:bne 11:blt 12:bge
                     {
                     case 0:
                         {
-
+                            hs_de_ex.ALU_Operation=9;
                         }
                         break;
                     case 1:
                         {
-                            
+                            hs_de_ex.ALU_Operation=10;
                         }
                         break;
                     case 4:
                         {
+                            hs_de_ex.ALU_Operation=11;
                             
                         }
                         break;
                     case 5:
                         {
-                            
-                        }
-                        break;
-                    case 6:
-                        {
-                            
-                        }
-                        break;
-                    case 7:
-                        {
-                            
+                            hs_de_ex.ALU_Operation=12;
                         }
                         break;
                     
@@ -453,14 +442,28 @@ class Decode
                     }
                         break;
                     }
-                    
-
-                
+     
                }
                 break;
             
             case 'U':
                {
+                hs_de_ex.ALU_Operation= 13;
+
+                bitset <32> immU;
+                for (int i = 0; i < 32; i++)
+                {
+                    if(i>=12)
+                    immU[i]=currentInstruction[i];
+                    else
+                    immU[i]=0;
+                }
+
+                hs_de_ex.immU = immU.to_ulong();
+                hs_de_ex.mem_OP=0;
+                hs_de_ex.RFWrite=1;
+                hs_de_ex.Result_select= 1;
+                                
                 
                }
                 break;
@@ -497,6 +500,92 @@ void reset_pointer()
 {
 
 }
+
+typedef struct ex_ma_hs_de_ex{
+   
+    int ALU_result;//0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt
+    int isBranch;//will tell whether to branch or not
+
+} EX_MA;
+EX_MA hs_ex_ma;
+
+void execute(int op1, int op2, int ALU_operation){
+  
+    switch (ALU_operation){
+    case 0:     //it will perform addition in ALU
+    hs_ex_ma.ALU_result=op1+op2;
+    break;
+    case 1:     //it will perform subtraction in ALU
+    hs_ex_ma.ALU_result=op1-op2;
+    break;
+    case 2:     //it will perform logical XOR in ALU
+    hs_ex_ma.ALU_result=op1^op2;
+    break;
+    case 3:     //it will perform logical OR in ALU
+    hs_ex_ma.ALU_result=op1|op2;
+    break;
+    case 4:     //it will perform logical AND in ALU
+    hs_ex_ma.ALU_result=op1&op2;
+    break;
+    case 5:     //it will perform shift left logical in ALU
+    hs_ex_ma.ALU_result=op1<<op2;
+    break;
+    case 6:     //it will perform shift right logical in ALU
+    hs_ex_ma.ALU_result=op1>>op2;
+    break;
+    case 7:     //it will perform shift right arithmetic in ALU
+    
+    break;
+    
+    case 8:     //it will perform shift less than in ALU
+    
+    break;
+
+    case 9:     //will check for beq
+    hs_ex_ma.ALU_result==op1-op2;
+    if (hs_ex_ma.ALU_result==0){
+        hs_ex_ma.isBranch=1;
+    }
+    else
+        hs_ex_ma.isBranch=0;
+    break;
+
+    case 10:     //will check for bne
+    hs_ex_ma.ALU_result==op1-op2;
+    if (hs_ex_ma.ALU_result==0){
+        hs_ex_ma.isBranch=0;
+    }
+    else
+        hs_ex_ma.isBranch=1;
+    break;
+
+
+    case 11:     //will check for blt
+    hs_ex_ma.ALU_result==op1-op2;
+    if (hs_ex_ma.ALU_result<0){
+        hs_ex_ma.isBranch=1;
+    }
+    else
+        hs_ex_ma.isBranch=0;
+    break;
+    
+
+    case 12:     //will check for bge
+    hs_ex_ma.ALU_result==op1-op2;
+    if (hs_ex_ma.ALU_result>=0){
+        hs_ex_ma.isBranch=1;
+    }
+    else
+        hs_ex_ma.isBranch=0;
+    break;
+
+
+    default:
+    cout<<"some error has occured in decode!!";
+    }
+
+}
+
 int main()
 {
     make_file();
