@@ -540,6 +540,7 @@ typedef struct ex_ma_handshake{
    //handshake register between execute and memory access 
     int ALU_result;//0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt
     int isBranch;//will tell whether to branch or not
+    // int imm_nextPC;//PC + 4
 
 } EX_MA;
 EX_MA hs_ex_ma;
@@ -565,7 +566,7 @@ void execute(){
     int ALU_operation=hs_de_ex.ALU_Operation;
 
     switch (ALU_operation){
-    case 0:     //it will perform addition in ALU
+    case 0:     //it will perform addition in ALU also will compute effective address for S instruction
     hs_ex_ma.ALU_result=op1+op2;
     break;
     case 1:     //it will perform subtraction in ALU
@@ -651,20 +652,32 @@ void execute(){
         hs_ex_ma.isBranch=0;
     break;
 
-    case 13:  //jalr
+    case 13: //lui
+        cout<<"Executing lui ";
+        break;
+    
+    
+    case 14:
+    nextPCAdd=currentPCAdd.to_ulong()+4;
+    nextPCAdd=hs_de_ex.immJ+currentPCAdd.to_ulong(); //making pc=pc+immj
+    break;
+
+
+    case 15:  //jalr
     hs_ex_ma.ALU_result=op1+op2;
     hs_ex_ma.isBranch=2;
-    nextPCAdd=hs_de_ex.immJ+currentPCAdd.to_ulong(); //making pc=pc+immb
+    nextPCAdd=op1+op2; //making pc=pc+immj??**************************GADBAD
+    //must give rd in jalr for xi=pc+4
+    break;
 
-    case 14:
-    case 15:
+  
 
 
 
     default:
     cout<<"some error has occured in decode!!";
     }
-
+}
 
 int main()
 {
