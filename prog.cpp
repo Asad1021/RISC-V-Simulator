@@ -20,7 +20,6 @@ using namespace std;
 
 
 #pragma region DECODE_RELATED_DATA
-
 typedef struct if_de_hs_de_ex{
     int Op1,Op2;//oprands
     int Rd;//RF write destinstion
@@ -33,11 +32,22 @@ typedef struct if_de_hs_de_ex{
     int Store_op;//0:sb 1:sh 2:sw//to be used by mem to decide how many bit to store
     int Mem_Op2;//OP2 input for memmory
 } If_DE;
-
 If_DE hs_de_ex;
-
 int RF[32];//Register file
 #pragma endregion DECODE_RELATED_DATA
+
+
+#pragma region EXECUTE_RELATED_DATA
+typedef struct ex_ma_handshake{
+   //handshake register between execute and memory access 
+    int ALU_result;//0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt
+    int isBranch;//will tell whether to branch or not
+    // int imm_nextPC;//PC + 4
+} EX_MA;
+EX_MA hs_ex_ma;
+#pragma endregion EXECUTE_RELATED_DATA
+
+
 
 class Fetch
 {
@@ -544,158 +554,153 @@ void reset_pointer()
 
 }
 //#########################################################################################
-typedef struct ex_ma_handshake{
-   //handshake register between execute and memory access 
-    int ALU_result;//0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt
-    int isBranch;//will tell whether to branch or not
-    // int imm_nextPC;//PC + 4
 
-} EX_MA;
-EX_MA hs_ex_ma;
 
-int srl(int op1_int, int op2){
+
+class Execute{
+
+    int srl(int op1_int, int op2){
     //this will ensure logical right shift in case of SRL instruction
-    bitset<32>op1=op1_int;//convert input decimal number to a bitset
-    bitset<32>op1_shifted;//local bitset for storing shifted bitset
-    for(int i=0;i<32;i++){
-        op1_shifted[i]=op1[i+op2];
-        if(i+op2==31){
-            break;
+        bitset<32>op1=op1_int;//convert input decimal number to a bitset
+        bitset<32>op1_shifted;//local bitset for storing shifted bitset
+        for(int i=0;i<32;i++){
+            op1_shifted[i]=op1[i+op2];
+            if(i+op2==31){
+                break;
+            }
         }
+        int shifted_dec=op1_shifted.to_ulong();//converting back the shifted bitset to integer
+        return shifted_dec;
     }
-   int shifted_dec=op1_shifted.to_ulong();//converting back the shifted bitset to integer
-   return shifted_dec;
-}
 
+    void execute_inst(){
+        int op1 =hs_de_ex.Op1;
+        int op2 =hs_de_ex.Op2;
+        int ALU_operation=hs_de_ex.ALU_Operation;
 
-void execute(){
-    int op1 =hs_de_ex.Op1;
-    int op2 =hs_de_ex.Op2;
-    int ALU_operation=hs_de_ex.ALU_Operation;
-
-    switch (ALU_operation){
-    case 0:     //it will perform addition in ALU also will compute effective address for S and Load instruction
-    hs_ex_ma.ALU_result=op1+op2;
-    break;
-    case 1:     //it will perform subtraction in ALU
-    hs_ex_ma.ALU_result=op1-op2;
-    hs_ex_ma.isBranch=0;
-    break;
-    case 2:     //it will perform logical XOR in ALU
-    hs_ex_ma.ALU_result=op1^op2;
-    hs_ex_ma.isBranch=0;
-    break;
-    case 3:     //it will perform logical OR in ALU
-    hs_ex_ma.ALU_result=op1|op2;
-    hs_ex_ma.isBranch=0;
-    break;
-    case 4:     //it will perform logical AND in ALU
-    hs_ex_ma.ALU_result=op1&op2;
-    hs_ex_ma.isBranch=0;
-    break;
-    case 5:     //it will perform shift left logical in ALU
-    hs_ex_ma.ALU_result=op1<<op2;
-    hs_ex_ma.isBranch=0;
-    break;
-    case 6:     //it will perform shift right logical in ALU
-    hs_ex_ma.ALU_result=srl(op1,op2);
-    hs_ex_ma.isBranch=0;
-    break;
-    case 7:     //it will perform shift right arithmetic in ALU
-    hs_ex_ma.ALU_result=op1>>op2;
-    hs_ex_ma.isBranch=0;
-    break;
-    
-    case 8:     //it will perform set less than in ALU
-    if(op1<op2){
-        hs_ex_ma.ALU_result=1;
-    }
-    else hs_ex_ma.ALU_result=0;
-    hs_ex_ma.isBranch=0;
-    break;
-    //for branching, we are assigning 0 for no branch, 1 for branch target adress, and 2 for ALU result, i.e for JALR
-
-    case 9:     //will check for beq
-    hs_ex_ma.ALU_result==op1-op2;
-    if (hs_ex_ma.ALU_result==0){
-        hs_ex_ma.isBranch=1;
-
-        nextPCAdd=hs_de_ex.immB+currentPCAdd.to_ulong(); //making pc=pc+immb
-       
-    }
-    else
+        switch (ALU_operation){
+        case 0:     //it will perform addition in ALU also will compute effective address for S and Load instruction
+        hs_ex_ma.ALU_result=op1+op2;
         hs_ex_ma.isBranch=0;
-    break;
-
-    case 10:     //will check for bne
-    hs_ex_ma.ALU_result==op1-op2;
-    if (hs_ex_ma.ALU_result==0){
-        hs_ex_ma.isBranch=0;
-    }
-    else{
-        hs_ex_ma.isBranch=1;
-        nextPCAdd=hs_de_ex.immB+currentPCAdd.to_ulong(); //making pc=pc+immb
-    }
-    break;
-
-
-    case 11:     //will check for blt
-    hs_ex_ma.ALU_result==op1-op2;
-    if (hs_ex_ma.ALU_result<0){
-        hs_ex_ma.isBranch=1;
-        nextPCAdd=hs_de_ex.immB+currentPCAdd.to_ulong(); //making pc=pc+immb
-    }
-    else
-        hs_ex_ma.isBranch=0;
-    break;
-    
-
-    case 12:     //will check for bge
-    hs_ex_ma.ALU_result==op1-op2;
-    if (hs_ex_ma.ALU_result>=0){
-        hs_ex_ma.isBranch=1;
-        nextPCAdd=hs_de_ex.immB+currentPCAdd.to_ulong(); //making pc=pc+immb
-    }
-    else
-        hs_ex_ma.isBranch=0;
-    break;
-
-    case 13: //lui
-        cout<<"Executing lui ";
         break;
-    
-    
-    case 14: //JAL 
-    nextPCAdd=currentPCAdd.to_ulong()+4;
-    nextPCAdd=hs_de_ex.immJ+currentPCAdd.to_ulong(); //making pc=pc+immj
-    break;
+        case 1:     //it will perform subtraction in ALU
+        hs_ex_ma.ALU_result=op1-op2;
+        hs_ex_ma.isBranch=0;
+        break;
+        case 2:     //it will perform logical XOR in ALU
+        hs_ex_ma.ALU_result=op1^op2;
+        hs_ex_ma.isBranch=0;
+        break;
+        case 3:     //it will perform logical OR in ALU
+        hs_ex_ma.ALU_result=op1|op2;
+        hs_ex_ma.isBranch=0;
+        break;
+        case 4:     //it will perform logical AND in ALU
+        hs_ex_ma.ALU_result=op1&op2;
+        hs_ex_ma.isBranch=0;
+        break;
+        case 5:     //it will perform shift left logical in ALU
+        hs_ex_ma.ALU_result=op1<<op2;
+        hs_ex_ma.isBranch=0;
+        break;
+        case 6:     //it will perform shift right logical in ALU
+        hs_ex_ma.ALU_result=srl(op1,op2);
+        hs_ex_ma.isBranch=0;
+        break;
+        case 7:     //it will perform shift right arithmetic in ALU
+        hs_ex_ma.ALU_result=op1>>op2;
+        hs_ex_ma.isBranch=0;
+        break;
+        
+        case 8:     //it will perform set less than in ALU
+        if(op1<op2){
+            hs_ex_ma.ALU_result=1;
+        }
+        else hs_ex_ma.ALU_result=0;
+        hs_ex_ma.isBranch=0;
+        break;
+        //for branching, we are assigning 0 for no branch, 1 for branch target adress, and 2 for ALU result, i.e for JALR
+
+        case 9:     //will check for beq
+        hs_ex_ma.ALU_result==op1-op2;
+        if (hs_ex_ma.ALU_result==0){
+            hs_ex_ma.isBranch=1;
+
+            nextPCAdd=hs_de_ex.immB+currentPCAdd.to_ulong(); //making pc=pc+immb
+        
+        }
+        else
+            hs_ex_ma.isBranch=0;
+        break;
+
+        case 10:     //will check for bne
+        hs_ex_ma.ALU_result==op1-op2;
+        if (hs_ex_ma.ALU_result==0){
+            hs_ex_ma.isBranch=0;
+        }
+        else{
+            hs_ex_ma.isBranch=1;
+            nextPCAdd=hs_de_ex.immB+currentPCAdd.to_ulong(); //making pc=pc+immb
+        }
+        break;
 
 
-    case 15:  //jalr
-    hs_ex_ma.ALU_result=op1+op2;
-    hs_ex_ma.isBranch=2;
-    nextPCAdd=op1+op2; //making pc=pc+immj??**************************GADBAD
-    //must give rd in jalr for xi=pc+4
-    break;
-    case 16://auipc done
-    hs_ex_ma.ALU_result=currentPCAdd.to_ulong()+hs_de_ex.immU;//to be stored in rd...PC+imm<<12
+        case 11:     //will check for blt
+        hs_ex_ma.ALU_result==op1-op2;
+        if (hs_ex_ma.ALU_result<0){
+            hs_ex_ma.isBranch=1;
+            nextPCAdd=hs_de_ex.immB+currentPCAdd.to_ulong(); //making pc=pc+immb
+        }
+        else
+            hs_ex_ma.isBranch=0;
+        break;
+        
 
-    
-    break;
-  
+        case 12:     //will check for bge
+        hs_ex_ma.ALU_result==op1-op2;
+        if (hs_ex_ma.ALU_result>=0){
+            hs_ex_ma.isBranch=1;
+            nextPCAdd=hs_de_ex.immB+currentPCAdd.to_ulong(); //making pc=pc+immb
+        }
+        else
+            hs_ex_ma.isBranch=0;
+        break;
+
+        case 13: //lui
+            cout<<"Executing lui ";
+            break;
+        
+        
+        case 14: //JAL 
+        nextPCAdd=currentPCAdd.to_ulong()+4;
+        nextPCAdd=hs_de_ex.immJ+currentPCAdd.to_ulong(); //making pc=pc+immj
+        // cout<<"jal worked :"<<nextPCAdd;
+        break;
 
 
+        case 15:  //jalr
+        hs_ex_ma.ALU_result=op1+op2;
+        hs_ex_ma.isBranch=2;
+        nextPCAdd=op1+op2; //making pc=pc+immj??**************************GADBAD
+        //must give rd in jalr for xi=pc+4
+        break;
+        case 16://auipc done
+        hs_ex_ma.ALU_result=currentPCAdd.to_ulong()+hs_de_ex.immU;//to be stored in rd...PC+imm<<12
 
-    default:
-    cout<<"some error has occured in decode!!";
+        
+        break;
+        
+        default:
+        cout<<"some error has occured in decode!!";
+        }
+}
+
+    public:
+    Execute(){
+        execute_inst();
     }
-<<<<<<< Updated upstream
-}
+};
 
-=======
-
-}
->>>>>>> Stashed changes
 int main()
 {
     make_file();
@@ -705,8 +710,11 @@ int main()
     // cout<<endl<<"Current instr"<<currentInstruction;
 
     Fetch a;
-    cout<<endl;
+    cout<<endl<<"decode part\n";
     Decode A;
+    cout<<endl<<"execute part\n";
+    Execute b;
+
 
     return 0;
 }
