@@ -573,10 +573,8 @@ void reset_pointer()
 {
 
 }
+
 //#########################################################################################
-
-
-
 class Execute{
 
     int srl(int op1_int, int op2){
@@ -597,71 +595,88 @@ class Execute{
         int op1 =hs_de_ex.Op1;
         int op2 =hs_de_ex.Op2;
         int ALU_operation=hs_de_ex.ALU_Operation;
-
-        hs_ex_ma.PC_plus_four=currentPCAdd.to_ulong()+4;
+        cout<<"Execute stage ongoing"<<endl;
 
         switch (ALU_operation){
         case 0:     //it will perform addition in ALU also will compute effective address for S and Load instruction
+        // sw x10 0(x2)#x11=0x10001000
+        // x2=16000; 
+        // add x2 x2 -2
+        cout<<"ALU performing addition"<<endl;
         hs_ex_ma.ALU_result=op1+op2;
         hs_ex_ma.isBranch=0;
         break;
         case 1:     //it will perform subtraction in ALU
+        cout<<"ALU performing subtraction operation"<<endl;
         hs_ex_ma.ALU_result=op1-op2;
         hs_ex_ma.isBranch=0;
         break;
         case 2:     //it will perform logical XOR in ALU
+        cout<<"ALU performing XOR operation"<<endl;
         hs_ex_ma.ALU_result=op1^op2;
         hs_ex_ma.isBranch=0;
         break;
         case 3:     //it will perform logical OR in ALU
+        cout<<"ALU performing OR operation"<<endl;
         hs_ex_ma.ALU_result=op1|op2;
         hs_ex_ma.isBranch=0;
         break;
         case 4:     //it will perform logical AND in ALU
+        cout<<"ALU performing AND operation"<<endl;
         hs_ex_ma.ALU_result=op1&op2;
         hs_ex_ma.isBranch=0;
         break;
         case 5:     //it will perform shift left logical in ALU
+        cout<<"ALU performing logical left shift operation"<<endl;
         hs_ex_ma.ALU_result=op1<<op2;
         hs_ex_ma.isBranch=0;
         break;
         case 6:     //it will perform shift right logical in ALU
         hs_ex_ma.ALU_result=srl(op1,op2);
+        cout<<"ALU performing logical right shift operation"<<endl;
         hs_ex_ma.isBranch=0;
         break;
         case 7:     //it will perform shift right arithmetic in ALU
+        cout<<"ALU performing arithmetic right shift operation"<<endl;
         hs_ex_ma.ALU_result=op1>>op2;
         hs_ex_ma.isBranch=0;
         break;
         
         case 8:     //it will perform set less than in ALU
+        cout<<"ALU performing set less than operation"<<endl;
         if(op1<op2){
             hs_ex_ma.ALU_result=1;
         }
         else hs_ex_ma.ALU_result=0;
+
         hs_ex_ma.isBranch=0;
         break;
         //for branching, we are assigning 0 for no branch, 1 for branch target adress, and 2 for ALU result, i.e for JALR
 
         case 9:     //will check for beq
+        cout<<"ALU checking for beq"<<endl;
         hs_ex_ma.ALU_result==op1-op2;
         if (hs_ex_ma.ALU_result==0){
             hs_ex_ma.isBranch=1;
+            cout<<"Branching done"<<endl;
 
             nextPCAdd=hs_de_ex.immB+currentPCAdd.to_ulong(); //making pc=pc+immb
         
         }
         else
-            hs_ex_ma.isBranch=0;
+            {hs_ex_ma.isBranch=0;
+            cout<<"No branching"<<endl;}
         break;
 
         case 10:     //will check for bne
         hs_ex_ma.ALU_result==op1-op2;
         if (hs_ex_ma.ALU_result==0){
             hs_ex_ma.isBranch=0;
+            cout<<"No branching"<<endl;
         }
         else{
             hs_ex_ma.isBranch=1;
+            cout<<"Branching done"<<endl;
             nextPCAdd=hs_de_ex.immB+currentPCAdd.to_ulong(); //making pc=pc+immb
         }
         break;
@@ -671,10 +686,12 @@ class Execute{
         hs_ex_ma.ALU_result==op1-op2;
         if (hs_ex_ma.ALU_result<0){
             hs_ex_ma.isBranch=1;
-            nextPCAdd=hs_de_ex.immB+currentPCAdd.to_ulong(); //making pc=pc+immb
+            cout<<"Branching done"<<endl;
+            nextPCAdd=hs_de_ex.immB+currentPCAdd.to_ulong(); //making pc=pc+imm
         }
         else
-            hs_ex_ma.isBranch=0;
+           { hs_ex_ma.isBranch=0;
+            cout<<"No branching"<<endl;}
         break;
         
 
@@ -682,44 +699,50 @@ class Execute{
         hs_ex_ma.ALU_result==op1-op2;
         if (hs_ex_ma.ALU_result>=0){
             hs_ex_ma.isBranch=1;
+            cout<<"Branching done"<<endl;
             nextPCAdd=hs_de_ex.immB+currentPCAdd.to_ulong(); //making pc=pc+immb
         }
         else
-            hs_ex_ma.isBranch=0;
+            {hs_ex_ma.isBranch=0;
+            cout<<"No branching"<<endl;}
         break;
 
         case 13: //lui
-            cout<<"Executing lui ";
+            cout<<"Executin LUI "<<endl;
             break;
         
         
-        case 14: //JAL //wrong case
-        nextPCAdd=currentPCAdd.to_ulong()+4;//this needs to be a seperate variable
+        case 14: //JAL 
+        cout<<"Executing JAL"<<endl;
+        nextPCAdd=currentPCAdd.to_ulong()+4;
         nextPCAdd=hs_de_ex.immJ+currentPCAdd.to_ulong(); //making pc=pc+immj
         // cout<<"jal worked :"<<nextPCAdd;
         break;
 
 
         case 15:  //jalr
+        cout<<"Executing JALR"<<endl;
         hs_ex_ma.ALU_result=op1+op2;
         hs_ex_ma.isBranch=2;
-        nextPCAdd = op1 + op2; //making pc=pc+immj??**************************GADBAD
+        nextPCAdd=op1+op2; //making pc=pc+immj??**************************GADBAD
         //must give rd in jalr for xi=pc+4
         break;
-        case 16://auipc done
+
+        case 16://auipc 
+        cout<<"Executing AUIPC"<<endl;
         hs_ex_ma.ALU_result=currentPCAdd.to_ulong()+hs_de_ex.immU;//to be stored in rd...PC+imm<<12
 
         
         break;
         
         default:
-        cout<<"some error has occured in decode!!";
+        cout<<"Some error has occured in decode!!";
         }
 }
 
     public:
     Execute(){
-        execute_inst();
+        execute_inst();//making a public constructor function
     }
 };
 
