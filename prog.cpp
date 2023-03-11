@@ -3,6 +3,9 @@
 #include <string>
 #include <bitset>
 
+//immb conversion is always a unsigned operation hence we have to convert it to signed one by using typecast
+//immB+PC; immB=immb.to_ulong();//unsigned
+
 using namespace std;
 
 #pragma region FILE_RELATED_DATA
@@ -42,7 +45,8 @@ typedef struct ex_ma_handshake{
    //handshake register between execute and memory access 
     int ALU_result;//0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt
     int isBranch;//will tell whether to branch or not
-    // int imm_nextPC;//PC + 4
+    int PC_plus_four;//PC + 4
+    //branch target address
 } EX_MA;
 EX_MA hs_ex_ma;
 #pragma endregion EXECUTE_RELATED_DATA
@@ -578,6 +582,8 @@ class Execute{
         int op2 =hs_de_ex.Op2;
         int ALU_operation=hs_de_ex.ALU_Operation;
 
+        hs_ex_ma.PC_plus_four=currentPCAdd.to_ulong()+4;
+
         switch (ALU_operation){
         case 0:     //it will perform addition in ALU also will compute effective address for S and Load instruction
         hs_ex_ma.ALU_result=op1+op2;
@@ -671,8 +677,8 @@ class Execute{
             break;
         
         
-        case 14: //JAL 
-        nextPCAdd=currentPCAdd.to_ulong()+4;
+        case 14: //JAL //wrong case
+        nextPCAdd=currentPCAdd.to_ulong()+4;//this needs to be a seperate variable
         nextPCAdd=hs_de_ex.immJ+currentPCAdd.to_ulong(); //making pc=pc+immj
         // cout<<"jal worked :"<<nextPCAdd;
         break;
@@ -681,7 +687,7 @@ class Execute{
         case 15:  //jalr
         hs_ex_ma.ALU_result=op1+op2;
         hs_ex_ma.isBranch=2;
-        nextPCAdd=op1+op2; //making pc=pc+immj??**************************GADBAD
+        nextPCAdd = op1 + op2; //making pc=pc+immj??**************************GADBAD
         //must give rd in jalr for xi=pc+4
         break;
         case 16://auipc done
