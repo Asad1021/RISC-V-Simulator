@@ -19,6 +19,10 @@ using namespace std;
     bitset<32> currentPCAdd(0);
     bitset<32> nextPCAdd(0);
     bitset<32> currentInstruction;
+    //if this instruction is read then program exits
+    bitset<32> exitInstruction(0xffffffff);
+    //stores the pc + 4
+    bitset<32> pc_plus_four;
 #pragma endregion INSTRUCTION_RELATED_DATA 
 
 
@@ -65,7 +69,9 @@ class Fetch
             string pc_str = read();
             currentPCAdd = HexStringToBitset(pc_str);
             hex_str = read();
-            addToBitset();//currentPCAdd+=4//it has to be next address
+            // addToBitset();//currentPCAdd+=4//it has to be next address
+            incrementNextPCAdd();
+
         }
         else if(flag == 1)
         {
@@ -83,8 +89,18 @@ class Fetch
 
             tempRead>>hex_str;
         }
+
+        bitset<32> currentInstruction = HexStringToBitset(hex_str);
+        cout<<endl<<"READING INSTRUCTION "<<hex_str<<endl;
+
+        if(currentInstruction == exitInstruction) 
+        {
+            cout<<endl<<"EXITING...";
+            exit(0);
+        }
         //stoul converts string of type 0x012312 to its decimal value
-        return HexStringToBitset(hex_str);
+
+        return currentInstruction;
 
     }
     string read()
@@ -95,8 +111,11 @@ class Fetch
     }
     void addToBitset()
     {
-        currentPCAdd = currentPCAdd.to_ulong() + 4; // add 4 to the bitset
-        
+        currentPCAdd = currentPCAdd.to_ulong() + 4; // add 4 to the bitset    
+    }
+    void incrementNextPCAdd()
+    {
+        nextPCAdd = currentPCAdd.to_ulong() + 4; // add 4 to the bitset    
     }
 
     bitset<32> HexStringToBitset(string hex_instr)
@@ -104,7 +123,6 @@ class Fetch
         unsigned long hex_to_dec_val = stoul(hex_instr, nullptr, 16);
         bitset<32> binary_num(hex_to_dec_val);
         return binary_num;
-        
     }
 
     public:
@@ -112,15 +130,13 @@ class Fetch
     {
         currentInstruction = fetch_instruction(flag);
     }
-    
-
 };
 //makes .mc file
 void make_file()
 {
         cout << "Enter input filename: ";
-        // cin >> filename;
-        filename = "input.txt";
+        cin >> filename;
+        // filename = "input.txt";
 
 
         ifstream infile;
@@ -715,7 +731,9 @@ int main()
     // Fetch b;
     // cout<<endl<<"Current instr"<<currentInstruction;
 
-    Fetch a;
+
+    for(int i = 0; i < 6; i++)
+        Fetch a;
     cout<<endl<<"decode part\n";
     Decode A;
     cout<<endl<<"execute part\n";
