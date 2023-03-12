@@ -811,7 +811,7 @@ class WB{
     int rd = hs_de_ex.Rd;
     int aluresult = hs_ex_ma.ALU_result;
     int pc_plus_4 = currentPCAdd.to_ulong()+4;
-    int loaddata;
+    int loadeddata = hs_ma_wb.loaded_mem;
     int immu = hs_de_ex.immU;
     void wb(){
         switch(isbranch){
@@ -832,7 +832,7 @@ class WB{
                         break;
 
                         case 2: //ld operation
-                        RF[rd] = loaddata;
+                        RF[rd] = loadeddata;
                         break;
 
                         case 3: //r-type and i-type operations
