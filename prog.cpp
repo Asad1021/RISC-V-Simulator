@@ -735,11 +735,14 @@ class Execute{
         nextPCAdd=op1+op2; //making pc=pc+immj??**************************GADBAD
         //must give rd in jalr for xi=pc+4
         break;
-
+                
+                
         case 16://auipc 
         cout<<"Executing AUIPC"<<endl;
         hs_ex_ma.isBranch=0;
-        hs_de_ex.immU=currentPCAdd.to_ulong()+hs_de_ex.immU;//to be stored in rd...PC+imm<<12
+        hs_ex_ma.ALU_result=currentPCAdd.to_ulong()+hs_de_ex.immU;//to be stored in rd...PC+imm<<12
+
+  
 
         
         break;
