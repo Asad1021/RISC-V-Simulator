@@ -797,7 +797,6 @@ class Memory{
 
         }
     }
-    public:
     Memory()
     {
         memory_access();
@@ -819,27 +818,33 @@ class WB{
                 switch(rfwrite){
                     case 0://failed conditional branch
                     currentPCAdd = pc_plus_4;
+                    cout<<"Conditional branch"<<endl;
                     break;
 
                     case 1://write data in rf
                     switch(resultselect){
                         case 0: //pc+4
                         RF[rd] = pc_plus_4;
+                        cout<<"rd = pc+4"<<endl;
                         break;
 
-                        case 1: //immu
+                        case 1: //immu - lui & auipc
                         RF[rd] = immu;
+                        cout<<"rd = immu / rd = pc+immu"<<endl;
                         break;
 
                         case 2: //ld operation
                         RF[rd] = loadeddata;
+                        cout<<"rd = loadeddata"<<endl;
                         break;
 
                         case 3: //r-type and i-type operations
                         RF[rd] = aluresult;
+                        cout<<"rd = aluresult"<<endl;
                         break;
                     }
                     currentPCAdd = pc_plus_4;
+                    cout<<"pc+=4"<<endl;
                     break;
                 }
             }
@@ -849,11 +854,13 @@ class WB{
             switch(rfwrite){
                 case 0: //conditional branch
                 currentPCAdd = nextPCAdd;
+                cout<<"Condtional branch"<<endl;
                 break;
 
                 case 1://jal
                 RF[rd] = pc_plus_4;
                 currentPCAdd = nextPCAdd;
+                cout<<"rd = pc+4; pc+=imm"<<endl;
                 break;
             }
             break;
@@ -861,11 +868,11 @@ class WB{
             case 2://jalr
             RF[rd] = pc_plus_4;
             currentPCAdd = aluresult;
+            cout<<"rd = pc+4; pc=rs1 + imm"<<endl;
             break;
         }
         RF[0]=0;  //x0 is always 0;
     }
-    public:
     WB()
     {
         wb();
