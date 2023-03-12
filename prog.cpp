@@ -808,8 +808,8 @@ class Execute{
         case 16://auipc 
         cout<<"Executing AUIPC"<<endl;
         hs_ex_ma.isBranch=0;
-        hs_ex_ma.ALU_result=currentPCAdd.to_ulong()+hs_de_ex.immU;//to be stored in rd...PC+imm<<12
-
+        //hs_ex_ma.ALU_result=currentPCAdd.to_ulong()+hs_de_ex.immU;//to be stored in rd...PC+imm<<12
+        hs_de_ex.immU=currentPCAdd.to_ulong()+hs_de_ex.immU;
 <<<<<<< Updated upstream
   
 
@@ -871,6 +871,7 @@ class Memory{
 
         }
     }
+    public:
     Memory()
     {
         memory_access();
@@ -947,6 +948,7 @@ class WB{
         }
         RF[0]=0;  //x0 is always 0;
     }
+    public:
     WB()
     {
         wb();
