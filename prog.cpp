@@ -808,14 +808,8 @@ class Execute{
         case 16://auipc 
         cout<<"Executing AUIPC"<<endl;
         hs_ex_ma.isBranch=0;
-        //hs_ex_ma.ALU_result=currentPCAdd.to_ulong()+hs_de_ex.immU;//to be stored in rd...PC+imm<<12
-        hs_de_ex.immU=currentPCAdd.to_ulong()+hs_de_ex.immU;
-<<<<<<< Updated upstream
-  
+        hs_ex_ma.ALU_result=currentPCAdd.to_ulong()+hs_de_ex.immU;//to be stored in rd...PC+imm<<12
 
-        
-=======
->>>>>>> Stashed changes
         break;
         
         default:
@@ -835,7 +829,7 @@ class Memory{
     void memory_access(){
         int memop = hs_de_ex.mem_OP;
         int aluresult = hs_ex_ma.ALU_result;
-        int storeop = hs_de_ex.Store_op;
+        int storeop = hs_de_ex.Store_load_op;
         int memop2 = hs_de_ex.Mem_Op2;
         switch(memop){
             case 0://no memory operaation
