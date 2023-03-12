@@ -797,6 +797,7 @@ class Memory{
 
         }
     }
+    public:
     Memory()
     {
         memory_access();
@@ -864,6 +865,7 @@ class WB{
         }
         RF[0]=0;  //x0 is always 0;
     }
+    public:
     WB()
     {
         wb();
