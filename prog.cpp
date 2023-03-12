@@ -55,7 +55,13 @@ typedef struct ex_ma_handshake{
 EX_MA hs_ex_ma;
 #pragma endregion EXECUTE_RELATED_DATA
 
-
+#pragma region MEM_ACC_RELATED_DATA
+typedef struct ma_wb_handshake{
+    //handshake register between memory access and write back
+    int loaded_mem;
+} MA_WB ;
+MA_WB hs_ma_wb;
+#pragma endregion MEM_ACC_RELATED_DATA
 
 class Fetch
 {
@@ -733,7 +739,7 @@ class Execute{
         case 16://auipc 
         cout<<"Executing AUIPC"<<endl;
         hs_ex_ma.isBranch=0;
-        hs_ex_ma.ALU_result=currentPCAdd.to_ulong()+hs_de_ex.immU;//to be stored in rd...PC+imm<<12
+        hs_de_ex.immU=currentPCAdd.to_ulong()+hs_de_ex.immU;//to be stored in rd...PC+imm<<12
 
         
         break;
@@ -748,6 +754,119 @@ class Execute{
     public:
     Execute(){
         execute_inst();//making a public constructor function
+    }
+};
+
+class Memory{
+    void memory_access(){
+        int memop = hs_de_ex.mem_OP;
+        int aluresult = hs_ex_ma.ALU_result;
+        int storeop = hs_de_ex.Store_op;
+        int memop2 = hs_de_ex.Mem_Op2;
+        switch(memop){
+            case 0://no memory operaation
+            break;
+
+            case 1:{//write
+                switch(storeop){
+                    case 0:
+                    int* ptr = reinterpret_cast<int*>(aluresult); // Declare pointer variable and initialize it with the value of aluresult
+                    int memop2_data = memop2&255;
+                    *ptr = memop2_data;  
+                    break;
+
+                    case 1:
+                    int* ptr = reinterpret_cast<int*>(aluresult); // Declare pointer variable and initialize it with the value of aluresult
+                    int memop2_data = memop2&65535;
+                    *ptr = memop2_data;  
+                    break;
+
+                    case 2:
+                    int* ptr = reinterpret_cast<int*>(aluresult); // Declare pointer variable and initialize it with the value of aluresult
+                    int memop2_data = memop2&4294967295;
+                    *ptr = memop2_data;  
+                    break; 
+                }
+            }
+            break;
+
+            case 2:{//read (load) pending
+            
+            }
+            break;
+
+        }
+    }
+    Memory()
+    {
+        memory_access();
+    }
+};
+
+class WB{
+    int resultselect = hs_de_ex.Result_select;
+    int rfwrite = hs_de_ex.RFWrite;
+    int isbranch = hs_ex_ma.isBranch;
+    int rd = hs_de_ex.Rd;
+    int aluresult = hs_ex_ma.ALU_result;
+    int pc_plus_4 = currentPCAdd.to_ulong()+4;
+    int loaddata;
+    int immu = hs_de_ex.immU;
+    void wb(){
+        switch(isbranch){
+            case 0:{//r-type, i-type, failed conditional branching, u-type
+                switch(rfwrite){
+                    case 0://failed conditional branch
+                    currentPCAdd = pc_plus_4;
+                    break;
+
+                    case 1://write data in rf
+                    switch(resultselect){
+                        case 0: //pc+4
+                        RF[rd] = pc_plus_4;
+                        break;
+
+                        case 1: //immu
+                        RF[rd] = immu;
+                        break;
+
+                        case 2: //ld operation
+                        RF[rd] = loaddata;
+                        break;
+
+                        case 3: //r-type and i-type operations
+                        RF[rd] = aluresult;
+                        break;
+                    }
+                    currentPCAdd = pc_plus_4;
+                    break;
+                }
+            }
+            break;
+
+            case 1://jal and conditional branches
+            switch(rfwrite){
+                case 0: //conditional branch
+                currentPCAdd = nextPCAdd;
+                break;
+
+                case 1://jal
+                RF[rd] = pc_plus_4;
+                currentPCAdd = nextPCAdd;
+                break;
+            }
+            break;
+
+            case 2://jalr
+            RF[rd] = pc_plus_4;
+            currentPCAdd = aluresult;
+            break;
+        }
+        RF[0]=0;  //x0 is always 0;
+    }
+    WB()
+    {
+        wb();
     }
 };
 
