@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 #include <bitset>
+#include <string>
 
 #define MEMORY_SIZE 16000
 //immb conversion is always a unsigned operation hence we have to convert it to signed one by using typecast
@@ -83,12 +84,13 @@ class Fetch
         }
         else if(flag == 1)
         {
-            currentPCAdd = nextPCAdd;
+            // currentPCAdd = nextPCAdd;//changed by shiva
             ifstream tempRead("input.mc");
             string tempHexa;
             tempRead>>tempHexa;
             bitset<32> tempBitset(HexStringToBitset(tempHexa));
-            while(tempBitset != nextPCAdd)
+            // while(tempBitset != nextPCAdd)//by shiva
+            while(tempBitset != currentPCAdd)
             {
                 tempRead>>tempHexa;
                 tempRead>>tempHexa;
@@ -385,7 +387,7 @@ class Decode
 
                     bitset <5> rs1;
                     bitset <5> rd;
-                    bitset <12> imm;
+                    bitset <12> temp;
 
                     for (int i = 0; i < 5; i++)
                     {
@@ -395,7 +397,19 @@ class Decode
 
                     for (int i = 0; i < 12; i++)
                     {
-                        imm[i] = currentInstruction[i+20];
+                        temp[i] = currentInstruction[i+20];
+                    }
+
+                    bitset <32> imm;
+
+                    for (int i = 0; i < 12; i++)
+                    {
+                        imm[i]=temp[i];                        
+                    }
+
+                    for (int i = 12; i < 32; i++)
+                    {
+                        imm[i]=temp[11];
                     }
 
                     hs_de_ex.Op1 = RF[rs1.to_ulong()];//value of rs1
@@ -427,16 +441,27 @@ class Decode
                     }
 
                     
-                    bitset<12> immS;
+                    bitset<12> temp;
                      for (int i = 0; i < 5; i++)
                      {
-                        immS[i] = currentInstruction[7+i];
+                        temp[i] = currentInstruction[7+i];
                      }
 
                      for (int i = 5; i < 12; i++)
                      {
-                        immS[i] = currentInstruction[i+20];
+                        temp[i] = currentInstruction[i+20];
                      }
+
+                     bitset <32> immS;
+                    for (int i = 0; i < 12; i++)
+                    {
+                        immS[i]=temp[i];                        
+                    }
+
+                    for (int i = 12; i < 32; i++)
+                    {
+                        immS[i]=temp[11];
+                    }
 
                      hs_de_ex.Op1 = RF[rs1.to_ulong()];
                      hs_de_ex.Op2 = (int) immS.to_ulong();
@@ -463,20 +488,32 @@ class Decode
                     hs_de_ex.Op1 = RF[rs1.to_ulong()];
                     hs_de_ex.Op2 = RF[rs2.to_ulong()];
 
-                    bitset<14> immB;
+                    bitset<13> temp;
 
-                    immB[0]=0;//lsb is 0
-                    immB[11]=currentInstruction[7];
-                    immB[12]=currentInstruction[31];
+                    temp[0]=0;//lsb is 0
+                    temp[11]=currentInstruction[7];
+                    temp[12]=currentInstruction[31];
 
                     for (int i = 1; i < 5; i++)
                     {
-                        immB[i] = currentInstruction[7+i];
+                        temp[i] = currentInstruction[7+i];
                     }
 
                     for (int i = 5; i < 11; i++)
                     {
-                        immB[i] = currentInstruction[20+i];
+                        temp[i] = currentInstruction[20+i];
+                    }
+
+                    bitset <32> immB;
+
+                    for (int i = 0; i < 13; i++)
+                    {
+                        immB[i]=temp[i];                        
+                    }
+
+                    for (int i = 13; i < 32; i++)
+                    {
+                        immB[i]=temp[12];
                     }
 
                     hs_de_ex.immB = (int)immB.to_ulong();
@@ -491,21 +528,25 @@ class Decode
                     case 0:
                         {
                             hs_de_ex.ALU_Operation=9;
+                            cout<<"beq";
                         }
                         break;
                     case 1:
                         {
+                            cout<<"bne";
                             hs_de_ex.ALU_Operation=10;
                         }
                         break;
                     case 4:
                         {
+                            cout<<"blt";
                             hs_de_ex.ALU_Operation=11;
                             
                         }
                         break;
                     case 5:
                         {
+                            cout<<"bge";
                             hs_de_ex.ALU_Operation=12;
                         }
                         break;
@@ -517,7 +558,8 @@ class Decode
                     }
                         break;
                     }
-     
+                    cout<<"OP1:"<<hs_de_ex.Op1<<endl;
+                    cout<<"OP2:"<<hs_de_ex.Op2<<endl;
                }
                 break;
             
@@ -592,22 +634,33 @@ class Decode
             case 'J':
                 {
                     cout<<"J type instruction";
-                    bitset <21> ImmJ(0);
+                    bitset <21> temp(0);
 
                     for (int i = 12; i <20 ; i++)
                     {
-                        ImmJ[i]=currentInstruction[i];
+                        temp[i]=currentInstruction[i];
                     }
 
-                    ImmJ[11]=currentInstruction[20];
-                    ImmJ[0]=0;
+                    temp[11]=currentInstruction[20];
+                    temp[0]=0;
 
                     for (int i = 1; i < 11; i++)
                     {
-                        ImmJ[i]=currentInstruction[i+20];
+                        temp[i]=currentInstruction[i+20];
                     }
 
-                    ImmJ[20]=currentInstruction[31];
+                    temp[20]=currentInstruction[31];
+
+                    bitset <32> immJ;
+                    for (int i = 0; i < 21; i++)
+                    {
+                        immJ[i]=temp[i];                        
+                    }
+
+                    for (int i = 21; i < 32; i++)
+                    {
+                        immJ[i]=temp[20];
+                    }
 
                     // cout<<"IMMj="<<ImmJ;
 
@@ -619,7 +672,7 @@ class Decode
                     }
                     
 
-                    hs_de_ex.immJ = (int)ImmJ.to_ulong();
+                    hs_de_ex.immJ = (int)immJ.to_ulong();
                     hs_de_ex.mem_OP=0;
                     hs_de_ex.branch_target_select=1;//immj
                     hs_de_ex.Rd = rd.to_ulong();
@@ -738,11 +791,11 @@ class Execute{
 
         case 9:     //will check for beq
         cout<<"ALU checking for beq"<<endl;
-        hs_ex_ma.ALU_result==op1-op2;
+        hs_ex_ma.ALU_result=op1-op2;
         if (hs_ex_ma.ALU_result==0){
             hs_ex_ma.isBranch=1;
             cout<<"Branching done"<<endl;
-
+            cout<<"immb="<<hs_de_ex.immB<<endl;
             nextPCAdd=hs_de_ex.immB+currentPCAdd.to_ulong(); //making pc=pc+immb
         
         }
@@ -752,7 +805,7 @@ class Execute{
         break;
 
         case 10:     //will check for bne
-        hs_ex_ma.ALU_result==op1-op2;
+        hs_ex_ma.ALU_result=op1-op2;
         if (hs_ex_ma.ALU_result==0){
             hs_ex_ma.isBranch=0;
             cout<<"No branching"<<endl;
@@ -766,7 +819,7 @@ class Execute{
 
 
         case 11:     //will check for blt
-        hs_ex_ma.ALU_result==op1-op2;
+        hs_ex_ma.ALU_result=op1-op2;
         if (hs_ex_ma.ALU_result<0){
             hs_ex_ma.isBranch=1;
             cout<<"Branching done"<<endl;
@@ -779,7 +832,9 @@ class Execute{
         
 
         case 12:     //will check for bge
-        hs_ex_ma.ALU_result==op1-op2;
+        hs_ex_ma.ALU_result=op1-op2;
+        cout<<"OP1:"<<hs_de_ex.Op1;
+        cout<<"OP2:"<<hs_de_ex.Op2;
         if (hs_ex_ma.ALU_result>=0){
             hs_ex_ma.isBranch=1;
             cout<<"Branching done"<<endl;
@@ -914,14 +969,14 @@ class Write_Back{
             case 0:{//r-type, i-type, failed conditional branching, u-type
                 switch(rfwrite){
                     case 0://failed conditional branch
-                    currentPCAdd = pc_plus_4;
+                    currentPCAdd = currentPCAdd.to_ulong()+4;
                     cout<<"Conditional branch"<<endl;
                     break;
 
                     case 1://write data in rf
                     switch(resultselect){
                         case 0: //pc+4
-                        RF[rd] = pc_plus_4;
+                        RF[rd] = currentPCAdd.to_ulong()+4;
                         cout<<"rd = pc+4"<<endl;
                         break;
 
@@ -940,7 +995,7 @@ class Write_Back{
                         cout<<"rd = aluresult"<<endl;
                         break;
                     }
-                    currentPCAdd = pc_plus_4;
+                    currentPCAdd = currentPCAdd.to_ulong()+4;
                     cout<<"pc+=4"<<endl;
                     break;
                 }
@@ -950,20 +1005,21 @@ class Write_Back{
             case 1://jal and conditional branches
             switch(rfwrite){
                 case 0: //conditional branch
-                currentPCAdd = nextPCAdd;
-                cout<<"Condtional branch"<<endl;
+                currentPCAdd = nextPCAdd.to_ulong();
+                cout<<"Condtional branch"<<", currenpc="<<currentPCAdd<<endl;
+                
                 break;
 
                 case 1://jal
-                RF[rd] = pc_plus_4;
-                currentPCAdd = nextPCAdd;
+                RF[rd] = currentPCAdd.to_ulong()+4;
+                currentPCAdd = nextPCAdd.to_ulong();
                 cout<<"rd = pc+4; pc+=imm"<<endl;
                 break;
             }
             break;
 
             case 2://jalr
-            RF[rd] = pc_plus_4;
+            RF[rd] = currentPCAdd.to_ulong()+4;
             currentPCAdd = aluresult;
             cout<<"rd = pc+4; pc=rs1 + imm"<<endl;
             break;
@@ -979,13 +1035,16 @@ class Write_Back{
 
 void RISCv_Processor()
 {
+    RF[2]=MEMORY_SIZE;
+    string buff;
     while(1)
     {
-        Fetch a;
+        Fetch a(1);
         Decode b;
         Execute c;
         Memory_Acess d;
         Write_Back e;
+        // cin>>buff;
 
     }
 }
