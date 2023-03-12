@@ -3,6 +3,7 @@
 #include <string>
 #include <bitset>
 
+#define MEMORY_SIZE 16000
 //immb conversion is always a unsigned operation hence we have to convert it to signed one by using typecast
 //immB+PC; immB=immb.to_ulong();//unsigned
 
@@ -61,6 +62,7 @@ typedef struct ma_wb_handshake{
     int loaded_mem;
 } MA_WB ;
 MA_WB hs_ma_wb;
+int memory_arr[MEMORY_SIZE];
 #pragma endregion MEM_ACC_RELATED_DATA
 
 class Fetch
@@ -808,8 +810,14 @@ class Execute{
         case 16://auipc 
         cout<<"Executing AUIPC"<<endl;
         hs_ex_ma.isBranch=0;
-        hs_ex_ma.ALU_result=currentPCAdd.to_ulong()+hs_de_ex.immU;//to be stored in rd...PC+imm<<12
+        //hs_ex_ma.ALU_result=currentPCAdd.to_ulong()+hs_de_ex.immU;//to be stored in rd...PC+imm<<12
+        hs_de_ex.immU=currentPCAdd.to_ulong()+hs_de_ex.immU;
+<<<<<<< Updated upstream
+  
 
+        
+=======
+>>>>>>> Stashed changes
         break;
         
         default:
@@ -829,37 +837,54 @@ class Memory{
     void memory_access(){
         int memop = hs_de_ex.mem_OP;
         int aluresult = hs_ex_ma.ALU_result;
-        int storeop = hs_de_ex.Store_load_op;
+        int storeloadop = hs_de_ex.Store_load_op;
         int memop2 = hs_de_ex.Mem_Op2;
+        int loaddata;
         switch(memop){
             case 0://no memory operaation
             break;
 
             case 1:{//write
-                switch(storeop){
-                    case 0:
-                    int* ptr = reinterpret_cast<int*>(aluresult); // Declare pointer variable and initialize it with the value of aluresult
-                    int memop2_data = memop2&255;
-                    *ptr = memop2_data;  
+                switch(storeloadop){
+                    case 0: 
+                    memory_arr[aluresult] = memop2&255;//lb
+                    cout<<"sb"<<endl;
                     break;
 
                     case 1:
-                    int* ptr = reinterpret_cast<int*>(aluresult); // Declare pointer variable and initialize it with the value of aluresult
-                    int memop2_data = memop2&65535;
-                    *ptr = memop2_data;  
+                    memory_arr[aluresult] = memop2&65535;//lh
+                    cout<<"sh"<<endl;
                     break;
 
                     case 2:
-                    int* ptr = reinterpret_cast<int*>(aluresult); // Declare pointer variable and initialize it with the value of aluresult
-                    int memop2_data = memop2&4294967295;
-                    *ptr = memop2_data;  
+                    memory_arr[aluresult] = memop2; //lw
+                    cout<<"sw"<<endl;
                     break; 
                 }
             }
             break;
 
             case 2:{//read (load) pending
-            
+                switch (storeloadop)
+                {
+                case 0:
+                loaddata = memory_arr[aluresult];//lb
+                loaddata = loaddata & 255;
+                cout<<"lb"<<endl;
+                break;
+                
+                case 1:
+                loaddata = memory_arr[aluresult];//lh
+                loaddata = loaddata & 65535;
+                cout<<"lh"<<endl;
+                break;
+
+                case 2:
+                loaddata = memory_arr[aluresult];//lw
+                cout<<"lw"<<endl;
+                break;
+                }
+                hs_ma_wb.loaded_mem = loaddata;
             }
             break;
 
