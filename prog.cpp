@@ -4,7 +4,7 @@
 #include <bitset>
 #include <string>
 
-#define MEMORY_SIZE 16000
+#define MEMORY_SIZE 1200001
 //immb conversion is always a unsigned operation hence we have to convert it to signed one by using typecast
 //immB+PC; immB=immb.to_ulong();//unsigned
 
@@ -105,13 +105,22 @@ class Fetch
 
         if(currentInstruction == exitInstruction) 
         {
-            cout<<endl<<"EXITING...";
+            cout<<endl<<"EXITING...\n";
 
-            cout<<"Register File is: \n";
+            ofstream memFile;//storing the memmory array in a txt file
+            memFile.open("Memmory_Dump.txt");
+            for (int i = 0; i<MEMORY_SIZE; i++)
+            {
+                memFile<<i<<": "<<memory_arr[i]<<(((i+1)%4==0)? "\n": "  |");
+            }
+
+            cout<<"\nRegister File is: \n";
             for (int i = 0; i < 32; i++)
             {
                 cout<<"x"<<i<<"="<<RF[i]<<endl;
             }
+
+            
     
             exit(0);
         }
@@ -177,6 +186,7 @@ void make_file()
             cout << "0x" << hex<<offset << " " << line << endl; 
             //skip 0x part
             string hex_str = line;
+            hex_str = "0x" + line;
             //stoul converts string of type 0x012312 to its decimal value
             unsigned long hex_to_dec_val = stoul(hex_str, nullptr, 16);
             bitset<32> binary_num(hex_to_dec_val);
@@ -1035,7 +1045,7 @@ class Write_Back{
 
 void RISCv_Processor()
 {
-    RF[2]=MEMORY_SIZE;
+    RF[2]=MEMORY_SIZE-1;
     string buff;
     while(1)
     {
