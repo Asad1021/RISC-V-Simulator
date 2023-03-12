@@ -842,6 +842,7 @@ class Memory{
         int loaddata;
         switch(memop){
             case 0://no memory operaation
+                cout<<"not a memory operation"<<endl;
             break;
 
             case 1:{//write
