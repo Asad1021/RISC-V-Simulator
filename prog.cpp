@@ -104,6 +104,13 @@ class Fetch
         if(currentInstruction == exitInstruction) 
         {
             cout<<endl<<"EXITING...";
+
+            cout<<"Register File is: \n";
+            for (int i = 0; i < 32; i++)
+            {
+                cout<<"x"<<i<<"="<<RF[i]<<endl;
+            }
+    
             exit(0);
         }
         //stoul converts string of type 0x012312 to its decimal value
@@ -812,12 +819,7 @@ class Execute{
         hs_ex_ma.isBranch=0;
         //hs_ex_ma.ALU_result=currentPCAdd.to_ulong()+hs_de_ex.immU;//to be stored in rd...PC+imm<<12
         hs_de_ex.immU=currentPCAdd.to_ulong()+hs_de_ex.immU;
-<<<<<<< Updated upstream
   
-
-        
-=======
->>>>>>> Stashed changes
         break;
         
         default:
@@ -833,7 +835,7 @@ class Execute{
     }
 };
 
-class Memory{
+class Memory_Acess{
     void memory_access(){
         int memop = hs_de_ex.mem_OP;
         int aluresult = hs_ex_ma.ALU_result;
@@ -892,13 +894,13 @@ class Memory{
         }
     }
     public:
-    Memory()
+    Memory_Acess()
     {
         memory_access();
     }
 };
 
-class WB{
+class Write_Back{
     int resultselect = hs_de_ex.Result_select;
     int rfwrite = hs_de_ex.RFWrite;
     int isbranch = hs_ex_ma.isBranch;
@@ -969,15 +971,29 @@ class WB{
         RF[0]=0;  //x0 is always 0;
     }
     public:
-    WB()
+    Write_Back()
     {
         wb();
     }
 };
 
+void RISCv_Processor()
+{
+    while(1)
+    {
+        Fetch a;
+        Decode b;
+        Execute c;
+        Memory_Acess d;
+        Write_Back e;
+
+    }
+}
+
 int main()
 {
     make_file();
+    RISCv_Processor();
     //whenever you create an object pc increments by 4 and new instruction is loaded in currentInstruction global var
     // Fetch a;
     // Fetch b;
@@ -985,12 +1001,22 @@ int main()
 
 
     // for(int i = 0; i < 6; i++)
-    Fetch a;
-    cout<<endl<<"decode part\n";
-    Decode A;
-    cout<<endl<<"execute part\n";
-    Execute b;
+    // Fetch a;
+    // cout<<endl<<"decode part\n";
+    // Decode b;
+    // cout<<endl<<"execute part\n";
+    // Execute c;
+    // Memory_Acess d;
+    // Write_Back e;
 
+    // Fetch a1;
+    // cout<<endl<<"decode part\n";
+    // Decode b1;
+    // cout<<endl<<"execute part\n";
+    // Execute c1;
+    // Memory_Acess d1;
+    // Write_Back e1;
 
+    
     return 0;
 }
