@@ -33,10 +33,10 @@ typedef struct if_de_hs_de_ex{
     int imm,immU,immS,immJ,immB;
     int branch_target_select;//0 for immB; 1 for immJ
     int Result_select;//0:PC+4 ; 1:ImmU; 2:Load data; 3: ALU result
-    int ALU_Operation;//0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt 9:beq 10:bne 11:blt 12:bge 13:lui 14:jal
+    int ALU_Operation;//0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt 9:beq 10:bne 11:blt 12:bge 13:lui 14:jal 15:jalr 16: auipc
     int mem_OP;//0:No operation 1:write 2:read
     int RFWrite;//0: no write operation 1:for write operation
-    int Store_op;//0:sb 1:sh 2:sw//to be used by mem to decide how many bit to store
+    int Store_load_op;//0:byte 1:half 2:word//to be used by mem to decide how many bit to store
     int Mem_Op2;//OP2 input for memmory
 } If_DE;
 If_DE hs_de_ex;
@@ -182,6 +182,7 @@ class Decode
 {
     void Decode_Instruction()
     {
+        cout<<"### Decode ###\n";
         bitset<5> opcode;
         char type_of_instruction;
 
@@ -194,7 +195,7 @@ class Decode
         if((!opcode[4])&&opcode[3]&&opcode[2]&&(!opcode[1])&&(!opcode[0]))//01100
         type_of_instruction = 'R';
 
-        else if((!opcode[4])&&(!opcode[3])&&(!opcode[1])&&(!opcode[0]))//00X00
+        else if((!opcode[4])&&(!opcode[3])&&(!opcode[1])&&(!opcode[0])||opcode[4]&&opcode[3]&&(!opcode[2])&&(!opcode[1])&&opcode[0])//00X00 OR 11001
         type_of_instruction = 'I';
 
         else if((!opcode[4])&&opcode[3]&&(!opcode[2])&&(!opcode[1])&&(!opcode[0]))//01000
@@ -223,6 +224,7 @@ class Decode
         {
             case 'R':
                {
+                    cout<<"R type instruction";
                     bitset<3> func3;
                     func3[0]=currentInstruction[12];
                     func3[1]=currentInstruction[13];
@@ -300,54 +302,81 @@ class Decode
 
             case 'I':
                 {
+                    cout<<"I type instruction\n";
                     bitset<3> func3;
                     func3[0]=currentInstruction[12];
                     func3[1]=currentInstruction[13];
                     func3[2]=currentInstruction[14];
 
-                    switch (func3.to_ulong())//alu op:: 0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt
+                    if(currentInstruction[4])//arithmatic operations
                     {
-                    case 0:
-                        hs_de_ex.ALU_Operation=0;
-                        break;
-                    case 4:
-                        hs_de_ex.ALU_Operation=2;
-                    
-                        break;
-                    case 6:
-                        hs_de_ex.ALU_Operation=3;
-                        break;
-                    case 7:
-                        hs_de_ex.ALU_Operation=4;
-                        break;
-                    case 1:
-                        hs_de_ex.ALU_Operation=5;
-                        break;
-                    case 5:
+                        cout<<"Arithmetic Opereation\n";
+                        switch (func3.to_ulong())//alu op:: 0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt
                         {
-                            if (currentInstruction[30])
+                        case 0:
+                            hs_de_ex.ALU_Operation=0;
+                            break;
+                        case 4:
+                            hs_de_ex.ALU_Operation=2;
+                        
+                            break;
+                        case 6:
+                            hs_de_ex.ALU_Operation=3;
+                            break;
+                        case 7:
+                            hs_de_ex.ALU_Operation=4;
+                            break;
+                        case 1:
+                            hs_de_ex.ALU_Operation=5;
+                            break;
+                        case 5:
                             {
-                                hs_de_ex.ALU_Operation=7;
+                                if (currentInstruction[30])
+                                {
+                                    hs_de_ex.ALU_Operation=7;
+                                }
+                                else{
+                                    hs_de_ex.ALU_Operation=6;
+                                }
                             }
-                            else{
-                                hs_de_ex.ALU_Operation=6;
-                            }
+                            break;
+                        case 2:
+                            hs_de_ex.ALU_Operation=8;
+                            break;
+                                            
+                        default:
+                        {
+                            cout<<"Invalid Instruction. Exiting...";
+                            exit(0);
                         }
-                        break;
-                    case 2:
-                        hs_de_ex.ALU_Operation=8;
-                        break;
-                                          
-                    default:
-                        break;
+                            break;
+                        }
+                        hs_de_ex.Result_select=3;
+                        hs_de_ex.mem_OP=0;
+                        hs_de_ex.RFWrite=1;
                     }
 
-                    hs_de_ex.Result_select=3;
-                    hs_de_ex.mem_OP=0;
-                    hs_de_ex.RFWrite=1;
+                    else if(!currentInstruction[6])//Load operation
+                    {
+                        cout<<"Load Opereation\n";
+                        hs_de_ex.ALU_Operation = 0;//add
+                        hs_de_ex.Store_load_op=func3.to_ulong();
+                        hs_de_ex.Result_select=2;//load data
+                        hs_de_ex.mem_OP=2;//read
+                        hs_de_ex.RFWrite=1;
+                    }
+                    else//jalr
+                    {
+                        hs_de_ex.ALU_Operation = 15;//jalr
+                        hs_de_ex.Result_select=0;//PC+4
+                        hs_de_ex.mem_OP=0;//no operation
+                        hs_de_ex.RFWrite=1;
+                    }
+
 
                     bitset <5> rs1;
                     bitset <5> rd;
+                    bitset <12> imm;
 
                     for (int i = 0; i < 5; i++)
                     {
@@ -355,28 +384,27 @@ class Decode
                         rd[i]=currentInstruction[i+7];     
                     }
 
-                    bitset <12> imm;
                     for (int i = 0; i < 12; i++)
                     {
                         imm[i] = currentInstruction[i+20];
                     }
 
                     hs_de_ex.Op1 = RF[rs1.to_ulong()];//value of rs1
-                    hs_de_ex.Op2 = imm.to_ulong();//value of rs2
+                    hs_de_ex.Op2 = (int)imm.to_ulong();//value of rs2
                     hs_de_ex.Rd = rd.to_ulong();//address of RD
                 }
                 break;
 
             case 'S':
                 {
-                    
+                    cout<<"S type instruction";
                     bitset<3> func3;
                     func3[0]=currentInstruction[12];
                     func3[1]=currentInstruction[13];
                     func3[2]=currentInstruction[14];
                     
                     hs_de_ex.ALU_Operation=0;//add
-                    hs_de_ex.Store_op = func3.to_ulong();
+                    hs_de_ex.Store_load_op = func3.to_ulong();
                     hs_de_ex.mem_OP = 1;//write operation
                     hs_de_ex.RFWrite=0;
 
@@ -402,13 +430,14 @@ class Decode
                      }
 
                      hs_de_ex.Op1 = RF[rs1.to_ulong()];
-                     hs_de_ex.Op2 = immS.to_ulong();
+                     hs_de_ex.Op2 = (int) immS.to_ulong();
                      hs_de_ex.Mem_Op2 = RF[rs2.to_ulong()];
 
                 }
                 break;
             case 'B':
                {
+                    cout<<"B type instruction";
                     hs_de_ex.branch_target_select=0;//immB
                     hs_de_ex.RFWrite= 0;
                     hs_de_ex.mem_OP=0;                    
@@ -441,7 +470,7 @@ class Decode
                         immB[i] = currentInstruction[20+i];
                     }
 
-                    hs_de_ex.immB = immB.to_ulong();
+                    hs_de_ex.immB = (int)immB.to_ulong();
 
                     bitset<3> func3;
                     func3[0]=currentInstruction[12];
@@ -485,36 +514,75 @@ class Decode
             
             case 'U':
                {
-                hs_de_ex.ALU_Operation= 13;
+                cout<<"U type instruction";
 
-                bitset <32> immU;
-                for (int i = 0; i < 32; i++)
+                if(currentInstruction[5])//lui
                 {
-                    if(i>=12)
-                    immU[i]=currentInstruction[i];
-                    else
-                    immU[i]=0;
+                    hs_de_ex.ALU_Operation= 13;
+
+                    bitset <32> immU;
+                    for (int i = 0; i < 32; i++)
+                    {
+                        if(i>=12)
+                        immU[i]=currentInstruction[i];
+                        else
+                        immU[i]=0;
+                    }
+
+                    hs_de_ex.immU = (int)immU.to_ulong();
+                    hs_de_ex.Result_select= 1;
+                    hs_de_ex.mem_OP=0;
+                    hs_de_ex.RFWrite=1;
+
+                    bitset<5> rd;
+
+                    for (int i = 0; i < 5; i++)
+                    {
+                        rd[i]=currentInstruction[i+7];
+                    }
+
+                    hs_de_ex.Rd = rd.to_ulong();
+
+                }
+                else//auipc
+                {
+                    hs_de_ex.ALU_Operation= 16;//must be add
+
+                    bitset <32> immU;
+                    for (int i = 0; i < 32; i++)
+                    {
+                        if(i>=12)
+                        immU[i]=currentInstruction[i];
+                        else
+                        immU[i]=0;
+                    }
+
+                    bitset<5> rd;
+
+                    for (int i = 0; i < 5; i++)
+                    {
+                        rd[i]=currentInstruction[i+7];
+                    }
+                    hs_de_ex.Rd = rd.to_ulong();
+
+                    hs_de_ex.immU = immU.to_ulong();
+
+                    hs_de_ex.Op1 = immU.to_ulong();//op1=immu
+                    hs_de_ex.Op2 = currentPCAdd.to_ulong();//op1=immu
+
+                    hs_de_ex.mem_OP=0;
+                    hs_de_ex.RFWrite= 1;
+                    hs_de_ex.Result_select=3;
+                    
                 }
 
-                hs_de_ex.immU = immU.to_ulong();
-                hs_de_ex.Result_select= 1;
-                hs_de_ex.mem_OP=0;
-                hs_de_ex.RFWrite=1;
-
-                bitset<5> rd;
-
-                for (int i = 0; i < 5; i++)
-                {
-                    rd[i]=currentInstruction[i+7];
-                }
-
-                hs_de_ex.Rd = rd.to_ulong();
                 
                }
                 break;
             
             case 'J':
                 {
+                    cout<<"J type instruction";
                     bitset <21> ImmJ(0);
 
                     for (int i = 12; i <20 ; i++)
@@ -542,7 +610,7 @@ class Decode
                     }
                     
 
-                    hs_de_ex.immJ = ImmJ.to_ulong();
+                    hs_de_ex.immJ = (int)ImmJ.to_ulong();
                     hs_de_ex.mem_OP=0;
                     hs_de_ex.branch_target_select=1;//immj
                     hs_de_ex.Rd = rd.to_ulong();
@@ -742,9 +810,12 @@ class Execute{
         hs_ex_ma.isBranch=0;
         hs_ex_ma.ALU_result=currentPCAdd.to_ulong()+hs_de_ex.immU;//to be stored in rd...PC+imm<<12
 
+<<<<<<< Updated upstream
   
 
         
+=======
+>>>>>>> Stashed changes
         break;
         
         default:
@@ -891,8 +962,8 @@ int main()
     // cout<<endl<<"Current instr"<<currentInstruction;
 
 
-    for(int i = 0; i < 6; i++)
-        Fetch a;
+    // for(int i = 0; i < 6; i++)
+    Fetch a;
     cout<<endl<<"decode part\n";
     Decode A;
     cout<<endl<<"execute part\n";
