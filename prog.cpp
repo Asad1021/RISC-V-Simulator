@@ -577,7 +577,7 @@ void reset_pointer()
 //#########################################################################################
 class Execute{
 
-    int srl(int op1_int, int op2){
+   int srl(int op1_int, int op2){
     //this will ensure logical right shift in case of SRL instruction
         bitset<32>op1=op1_int;//convert input decimal number to a bitset
         bitset<32>op1_shifted;//local bitset for storing shifted bitset
@@ -708,12 +708,14 @@ class Execute{
         break;
 
         case 13: //lui
+            hs_ex_ma.isBranch=0;
             cout<<"Executin LUI "<<endl;
             break;
         
         
         case 14: //JAL 
         cout<<"Executing JAL"<<endl;
+        hs_ex_ma.isBranch=1;
         nextPCAdd=currentPCAdd.to_ulong()+4;
         nextPCAdd=hs_de_ex.immJ+currentPCAdd.to_ulong(); //making pc=pc+immj
         // cout<<"jal worked :"<<nextPCAdd;
@@ -730,6 +732,7 @@ class Execute{
 
         case 16://auipc 
         cout<<"Executing AUIPC"<<endl;
+        hs_ex_ma.isBranch=0;
         hs_ex_ma.ALU_result=currentPCAdd.to_ulong()+hs_de_ex.immU;//to be stored in rd...PC+imm<<12
 
         
@@ -739,6 +742,8 @@ class Execute{
         cout<<"Some error has occured in decode!!";
         }
 }
+
+
 
     public:
     Execute(){
