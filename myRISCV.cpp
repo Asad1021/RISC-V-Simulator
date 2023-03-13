@@ -245,7 +245,7 @@ class Decode
         {
             case 'R':
                {
-                    cout<<"R type instruction";
+                    cout<<"\nDECODE: ";
                     bitset<3> func3;
                     func3[0]=currentInstruction[12];
                     func3[1]=currentInstruction[13];
@@ -258,42 +258,55 @@ class Decode
                         if (currentInstruction[30])
                         {
                             hs_de_ex.ALU_Operation=1;
+                            cout<<"Operation is SUB";
                         }
                         else{
                             hs_de_ex.ALU_Operation=0;
-                            
+                            cout<<"Operation is ADD";
                         }
                     }
                         break;
                     case 4:
                         hs_de_ex.ALU_Operation=2;
+                        cout<<"Operation is XOR";
+
                     
                         break;
                     case 6:
                         hs_de_ex.ALU_Operation=3;
+                        cout<<"Operation is OR";
                         break;
                     case 7:
                         hs_de_ex.ALU_Operation=4;
+                        cout<<"Operation is AND";
                         break;
-                    case 1:
+                    case 1://5:sll 6:srl 7:sra 8:slt
                         hs_de_ex.ALU_Operation=5;
+                        cout<<"Operation is SLL";
                         break;
                     case 5:
                         {
                             if (currentInstruction[30])
                             {
                                 hs_de_ex.ALU_Operation=7;
+                                cout<<"Operation is SRA";
                             }
                             else{
                                 hs_de_ex.ALU_Operation=6;
+                                cout<<"Operation is SRL";
                             }
                         }
                         break;
                     case 2:
                         hs_de_ex.ALU_Operation=8;
+                        cout<<"Operation is SLT";
                         break;
                                           
                     default:
+                    {
+                        cerr<<"Invalid Instruction\nEXITING...";
+                        exit(0);
+                    }
                         break;
                     }
 
@@ -313,17 +326,18 @@ class Decode
                         rs2[i]=currentInstruction[i+20];
                         rd[i]=currentInstruction[i+7]; 
                     }
-
+                    cout<<", First Operand X"<<rs1.to_ulong()<<", Second Operand X"<<rs2.to_ulong()<<", Destination Registor X"<<rd.to_ulong()<<endl;
                     hs_de_ex.Op1 = RF[rs1.to_ulong()];//value of rs1
                     hs_de_ex.Op2 = RF[rs2.to_ulong()];//value of rs2
                     hs_de_ex.Rd = rd.to_ulong();//address of RD
+                    cout<<"DECODE: "<<"Read Register X"<<rs1.to_ulong()<<" = "<<hs_de_ex.Op1<<", X"<<rs2.to_ulong()<<" = "<<hs_de_ex.Op2<<endl;
                 
                }
                 break;
 
             case 'I':
                 {
-                    cout<<"I type instruction\n";
+                    cout<<"DECODE: I type instruction\n";
                     bitset<3> func3;
                     func3[0]=currentInstruction[12];
                     func3[1]=currentInstruction[13];
@@ -336,33 +350,40 @@ class Decode
                         {
                         case 0:
                             hs_de_ex.ALU_Operation=0;
+                            cout<<"Operation is ADD";
                             break;
                         case 4:
                             hs_de_ex.ALU_Operation=2;
-                        
+                            cout<<"Operation is XOR";
                             break;
                         case 6:
                             hs_de_ex.ALU_Operation=3;
+                            cout<<"Operation is OR";
                             break;
                         case 7:
                             hs_de_ex.ALU_Operation=4;
+                            cout<<"Operation is AND";
                             break;
                         case 1:
                             hs_de_ex.ALU_Operation=5;
+                            cout<<"Operation is SLL";
                             break;
                         case 5:
                             {
                                 if (currentInstruction[30])
                                 {
                                     hs_de_ex.ALU_Operation=7;
+                                    cout<<"Operation is SRA";
                                 }
                                 else{
                                     hs_de_ex.ALU_Operation=6;
+                                    cout<<"Operation is SRL";
                                 }
                             }
                             break;
                         case 2:
                             hs_de_ex.ALU_Operation=8;
+                            cout<<"Operation is SLT";
                             break;
                                             
                         default:
@@ -388,6 +409,7 @@ class Decode
                     }
                     else//jalr
                     {
+                        cout<<"JALR Opereation\n";
                         hs_de_ex.ALU_Operation = 15;//jalr
                         hs_de_ex.Result_select=0;//PC+4
                         hs_de_ex.mem_OP=0;//no operation
@@ -425,12 +447,16 @@ class Decode
                     hs_de_ex.Op1 = RF[rs1.to_ulong()];//value of rs1
                     hs_de_ex.Op2 = (int)imm.to_ulong();//value of rs2
                     hs_de_ex.Rd = rd.to_ulong();//address of RD
+                    cout<<", First Operand X"<<rs1.to_ulong()<<", Second Operand imm"<<", Destination Registor X"<<rd.to_ulong()<<endl;
+                    cout<<"DECODE: "<<"Read Register X"<<rs1.to_ulong()<<" = "<<hs_de_ex.Op1<<", imm = "<<hs_de_ex.Op2<<endl;
+                    
+                    
                 }
                 break;
 
             case 'S':
                 {
-                    cout<<"S type instruction";
+                    cout<<"S type instruction\n";
                     bitset<3> func3;
                     func3[0]=currentInstruction[12];
                     func3[1]=currentInstruction[13];
@@ -476,12 +502,15 @@ class Decode
                      hs_de_ex.Op1 = RF[rs1.to_ulong()];
                      hs_de_ex.Op2 = (int) immS.to_ulong();
                      hs_de_ex.Mem_Op2 = RF[rs2.to_ulong()];
+                    cout<<"First Operand X"<<rs1.to_ulong()<<", Second Operand immS = "<<immS.to_ulong()<<endl;
+                    cout<<"DECODE: "<<"Read Register X"<<rs1.to_ulong()<<" = "<<hs_de_ex.Op1<<", X"<<rs2.to_ulong()<<" = "<<hs_de_ex.Mem_Op2<<endl;
+                    
 
                 }
                 break;
             case 'B':
                {
-                    cout<<"B type instruction";
+                    cout<<"B type instruction\n";
                     hs_de_ex.branch_target_select=0;//immB
                     hs_de_ex.RFWrite= 0;
                     hs_de_ex.mem_OP=0;                    
@@ -538,25 +567,25 @@ class Decode
                     case 0:
                         {
                             hs_de_ex.ALU_Operation=9;
-                            cout<<"beq";
+                            cout<<"BEQ";
                         }
                         break;
                     case 1:
                         {
-                            cout<<"bne";
+                            cout<<"BNE";
                             hs_de_ex.ALU_Operation=10;
                         }
                         break;
                     case 4:
                         {
-                            cout<<"blt";
+                            cout<<"BLT";
                             hs_de_ex.ALU_Operation=11;
                             
                         }
                         break;
                     case 5:
                         {
-                            cout<<"bge";
+                            cout<<"BGE";
                             hs_de_ex.ALU_Operation=12;
                         }
                         break;
@@ -568,14 +597,15 @@ class Decode
                     }
                         break;
                     }
-                    cout<<"OP1:"<<hs_de_ex.Op1<<endl;
-                    cout<<"OP2:"<<hs_de_ex.Op2<<endl;
+                cout<<"\nFirst Operand X"<<rs1.to_ulong()<<", Second Operand X"<<rs2.to_ulong()<<endl;
+                cout<<"DECODE: "<<"Read Register X"<<rs1.to_ulong()<<" = "<<hs_de_ex.Op1<<", X"<<rs2.to_ulong()<<" = "<<hs_de_ex.Op2<<", immB = "<<immB.to_ulong()<<endl;
+                    
                }
                 break;
             
             case 'U':
                {
-                cout<<"U type instruction";
+                cout<<"U type instruction\n";
 
                 if(currentInstruction[5])//lui
                 {
@@ -603,6 +633,11 @@ class Decode
                     }
 
                     hs_de_ex.Rd = rd.to_ulong();
+
+                    cout<<"LUI\n";
+                    cout<<"DECODE: "<<"Destination Register X"<<rd.to_ulong()<<endl;
+                    cout<<"immU = "<<immU.to_ulong()<<endl;
+                 
 
                 }
                 else//auipc
@@ -634,8 +669,14 @@ class Decode
                     hs_de_ex.mem_OP=0;
                     hs_de_ex.RFWrite= 1;
                     hs_de_ex.Result_select=1;
+
+                    cout<<"AUIPC\n";
+                    cout<<"DECODE: "<<"Destination Register X"<<rd.to_ulong()<<endl;                 
+                    cout<<"\nFirst Operand immU"<<immU.to_ulong()<<", Second Operand PC"<<currentPCAdd.to_ulong()<<endl;
                     
                 }
+
+                
 
                 
                }
@@ -643,7 +684,7 @@ class Decode
             
             case 'J':
                 {
-                    cout<<"J type instruction";
+                    cout<<"J type instruction\n";
                     bitset <21> temp(0);
 
                     for (int i = 12; i <20 ; i++)
@@ -689,6 +730,11 @@ class Decode
                     hs_de_ex.ALU_Operation=14;//jal
                     hs_de_ex.Result_select=0;
                     hs_de_ex.RFWrite=1;
+
+                    cout<<"DECODE: "<<"Destination Register X"<<rd.to_ulong()<<", immJ = "<<immJ.to_ulong()<<endl;
+                 
+
+                    
                     
                 }
                 break;
@@ -702,7 +748,7 @@ class Decode
                 break;
         }
         
-
+        cout<<"### End Decode###\n";
     }
 
 
