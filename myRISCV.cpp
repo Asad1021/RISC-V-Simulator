@@ -84,12 +84,11 @@ class Fetch
         }
         else if(flag == 1)
         {
-            // currentPCAdd = nextPCAdd;//changed by shiva
             ifstream tempRead("input.mc");
             string tempHexa;
             tempRead>>tempHexa;
             bitset<32> tempBitset(HexStringToBitset(tempHexa));
-            // while(tempBitset != nextPCAdd)//by shiva
+
             while(tempBitset != currentPCAdd)
             {
                 tempRead>>tempHexa;
@@ -101,7 +100,7 @@ class Fetch
         }
 
         bitset<32> currentInstruction = HexStringToBitset(hex_str);
-        cout<<endl<<"READING INSTRUCTION "<<hex_str<<endl;
+        // cout<<endl<<"READING INSTRUCTION "<<hex_str<<endl;
 
         if(currentInstruction == exitInstruction) 
         {
@@ -109,6 +108,7 @@ class Fetch
 
             ofstream memFile;//storing the memmory array in a txt file
             memFile.open("Memmory_Dump.txt");
+
             for (int i = 0; i<MEMORY_SIZE; i++)
             {
                 memFile<<i<<": "<<memory_arr[i]<<(((i+1)%4==0)? "\n": "  |");
@@ -120,8 +120,6 @@ class Fetch
                 cout<<"x"<<i<<"="<<RF[i]<<endl;
             }
 
-            
-    
             exit(0);
         }
         //stoul converts string of type 0x012312 to its decimal value
@@ -154,7 +152,11 @@ class Fetch
     public:
     Fetch(int flag = 0)
     {
+        cout<<"\n### Fetch ###\n\n";
         currentInstruction = fetch_instruction(flag);
+        cout<<"FETCH:Fetch instruction "<<currentInstruction<<" From address "<<currentPCAdd<<endl;
+        cout<<"\n### End Fetch ###\n\n";
+
     }
 };
 //makes .mc file
@@ -183,14 +185,14 @@ void make_file()
         
         while (getline(infile, line))
         {
-            cout << "0x" << hex<<offset << " " << line << endl; 
+            // cout << "0x" << hex<<offset << " " << line << endl; 
             //skip 0x part
             string hex_str = line;
             hex_str = "0x" + line;
             //stoul converts string of type 0x012312 to its decimal value
             unsigned long hex_to_dec_val = stoul(hex_str, nullptr, 16);
             bitset<32> binary_num(hex_to_dec_val);
-            cout<<binary_num<<endl;
+            // cout<<binary_num<<endl;
             outfile << "0x" <<hex<<offset << " " << line << endl;
             offset += 4; // increase offset by 4 characters
         }
@@ -203,7 +205,7 @@ class Decode
 {
     void Decode_Instruction()
     {
-        cout<<"### Decode ###\n";
+        cout<<"\n### Decode ###\n\n";
         bitset<5> opcode;
         char type_of_instruction;
 
@@ -672,7 +674,7 @@ class Decode
 
                     cout<<"AUIPC\n";
                     cout<<"DECODE: "<<"Destination Register X"<<rd.to_ulong()<<endl;                 
-                    cout<<"\nFirst Operand immU"<<immU.to_ulong()<<", Second Operand PC"<<currentPCAdd.to_ulong()<<endl;
+                    cout<<"First Operand immU = "<<immU.to_ulong()<<", Second Operand PC"<<currentPCAdd.to_ulong()<<endl;
                     
                 }
 
@@ -748,7 +750,7 @@ class Decode
                 break;
         }
         
-        cout<<"### End Decode###\n";
+        cout<<"\n### End Decode ###\n\n";
     }
 
 
@@ -786,7 +788,7 @@ class Execute{
         int op1 =hs_de_ex.Op1;
         int op2 =hs_de_ex.Op2;
         int ALU_operation=hs_de_ex.ALU_Operation;
-        cout<<"Execute stage ongoing"<<endl;
+        cout<<"\n### Execute ###\n\n";
 
         switch (ALU_operation){
         case 0:     //it will perform addition in ALU also will compute effective address for S and Load instruction
@@ -946,6 +948,9 @@ class Execute{
         default:
         cout<<"Some error has occured in decode!!";
         }
+
+        cout<<"\n### End Execute ###\n\n";
+
 }
 
 
@@ -963,6 +968,8 @@ class Memory_Acess{
         int storeloadop = hs_de_ex.Store_load_op;
         int memop2 = hs_de_ex.Mem_Op2;
         int loaddata;
+        cout<<"\n### Memmory Access ###\n\n";
+
         switch(memop){
             case 0://no memory operaation
                 cout<<"not a memory operation"<<endl;
@@ -1013,6 +1020,9 @@ class Memory_Acess{
             break;
 
         }
+
+        cout<<"\n### End Memmory Access ###\n\n";
+
     }
     public:
     Memory_Acess()
@@ -1031,6 +1041,9 @@ class Write_Back{
     int loadeddata = hs_ma_wb.loaded_mem;
     int immu = hs_de_ex.immU;
     void wb(){
+
+        cout<<"\n### Write Back ###\n\n";
+
         switch(isbranch){
             case 0:{//r-type, i-type, failed conditional branching, u-type
                 switch(rfwrite){
@@ -1091,6 +1104,9 @@ class Write_Back{
             break;
         }
         RF[0]=0;  //x0 is always 0;
+
+        cout<<"\n### End Write Back ###\n\n";
+
     }
     public:
     Write_Back()
