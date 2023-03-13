@@ -107,7 +107,7 @@ class Fetch
             cout<<endl<<"EXITING...\n";
 
             ofstream memFile;//storing the memmory array in a txt file
-            memFile.open("Memmory_Dump.txt");
+            memFile.open("Memory_Dump.txt");
 
             for (int i = 0; i<MEMORY_SIZE; i++)
             {
@@ -164,8 +164,6 @@ void make_file()
 {
         cout << "Enter input filename: ";
         cin >> filename;
-        // filename = "input.txt";
-
 
         ifstream infile;
         //the input dump file from venus
@@ -213,7 +211,6 @@ class Decode
         {
             opcode[i]=currentInstruction[i+2];
         }
-        // cout<<opcode;
 
         if((!opcode[4])&&opcode[3]&&opcode[2]&&(!opcode[1])&&(!opcode[0]))//01100
         type_of_instruction = 'R';
@@ -240,8 +237,6 @@ class Decode
         type_of_instruction = 'I';
 
         else type_of_instruction = 'Z';
-
-        // cout<<type_of_instruction;
 
         switch (type_of_instruction)
         {
@@ -1132,29 +1127,5 @@ int main()
 {
     make_file();
     RISCv_Processor();
-    //whenever you create an object pc increments by 4 and new instruction is loaded in currentInstruction global var
-    // Fetch a;
-    // Fetch b;
-    // cout<<endl<<"Current instr"<<currentInstruction;
-
-
-    // for(int i = 0; i < 6; i++)
-    // Fetch a;
-    // cout<<endl<<"decode part\n";
-    // Decode b;
-    // cout<<endl<<"execute part\n";
-    // Execute c;
-    // Memory_Acess d;
-    // Write_Back e;
-
-    // Fetch a1;
-    // cout<<endl<<"decode part\n";
-    // Decode b1;
-    // cout<<endl<<"execute part\n";
-    // Execute c1;
-    // Memory_Acess d1;
-    // Write_Back e1;
-
-    
     return 0;
 }
