@@ -10,6 +10,8 @@
 
 using namespace std;
 
+int Clock=0;//this will store the No. of Clock cycle used for a program
+
 #pragma region FILE_RELATED_DATA
     // stores the file name of the dump file
     string filename;
@@ -119,6 +121,8 @@ class Fetch
             {
                 cout<<"x"<<i<<"="<<RF[i]<<endl;
             }
+
+            cout<<"No. of Clock cycle used: "<<Clock;
 
             exit(0);
         }
@@ -1120,6 +1124,7 @@ void RISCv_Processor()
         Execute c;
         Memory_Access d;
         Write_Back e;
+        Clock++;
     }
 }
 
