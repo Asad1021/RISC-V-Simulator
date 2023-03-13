@@ -961,35 +961,36 @@ class Execute{
     }
 };
 
-class Memory_Acess{
+class Memory_Access{
     void memory_access(){
         int memop = hs_de_ex.mem_OP;
         int aluresult = hs_ex_ma.ALU_result;
         int storeloadop = hs_de_ex.Store_load_op;
         int memop2 = hs_de_ex.Mem_Op2;
         int loaddata;
-        cout<<"\n### Memmory Access ###\n\n";
+        cout<<"\n### Memory Access ###\n\n";
+        cout<<"MEMORY: ";
 
         switch(memop){
-            case 0://no memory operaation
-                cout<<"not a memory operation"<<endl;
+            case 0://no memory operation
+                cout<<"Not a memory operation"<<endl;
             break;
 
             case 1:{//write
                 switch(storeloadop){
                     case 0: 
-                    memory_arr[aluresult] = memop2&255;//lb
-                    cout<<"sb"<<endl;
+                    memory_arr[aluresult] = memop2&255;//sb
+                    cout<<"Storing byte "<< memop2&255 <<endl;
                     break;
 
                     case 1:
-                    memory_arr[aluresult] = memop2&65535;//lh
-                    cout<<"sh"<<endl;
+                    memory_arr[aluresult] = memop2&65535;//sh
+                    cout<<"Storing half-word "<<memop2&65535<<endl;
                     break;
 
                     case 2:
-                    memory_arr[aluresult] = memop2; //lw
-                    cout<<"sw"<<endl;
+                    memory_arr[aluresult] = memop2; //sw
+                    cout<<"Storing word "<<memop2<<endl;
                     break; 
                 }
             }
@@ -1001,18 +1002,18 @@ class Memory_Acess{
                 case 0:
                 loaddata = memory_arr[aluresult];//lb
                 loaddata = loaddata & 255;
-                cout<<"lb"<<endl;
+                cout<<"Loading byte in register"<<<<endl;
                 break;
                 
                 case 1:
                 loaddata = memory_arr[aluresult];//lh
                 loaddata = loaddata & 65535;
-                cout<<"lh"<<endl;
+                cout<<"Loading half-word in register"<<endl;
                 break;
 
                 case 2:
                 loaddata = memory_arr[aluresult];//lw
-                cout<<"lw"<<endl;
+                cout<<"Loading word in register"<<endl;
                 break;
                 }
                 hs_ma_wb.loaded_mem = loaddata;
@@ -1025,7 +1026,7 @@ class Memory_Acess{
 
     }
     public:
-    Memory_Acess()
+    Memory_Access()
     {
         memory_access();
     }
@@ -1043,39 +1044,36 @@ class Write_Back{
     void wb(){
 
         cout<<"\n### Write Back ###\n\n";
-
+        cout<<"WRITEBACK: ";
         switch(isbranch){
             case 0:{//r-type, i-type, failed conditional branching, u-type
                 switch(rfwrite){
                     case 0://failed conditional branch
                     currentPCAdd = currentPCAdd.to_ulong()+4;
-                    cout<<"Conditional branch"<<endl;
+                    cout<<"No write-back required and current PC updated to PC+4"<<endl;
                     break;
 
                     case 1://write data in rf
                     switch(resultselect){
                         case 0: //pc+4
                         RF[rd] = currentPCAdd.to_ulong()+4;
-                        cout<<"rd = pc+4"<<endl;
                         break;
 
                         case 1: //immu - lui & auipc
-                        RF[rd] = immu;
-                        cout<<"rd = immu / rd = pc+immu"<<endl;
+                        RF[rd] = immu; 
                         break;
 
                         case 2: //ld operation
                         RF[rd] = loadeddata;
-                        cout<<"rd = loadeddata"<<endl;
                         break;
 
                         case 3: //r-type and i-type operations
                         RF[rd] = aluresult;
-                        cout<<"rd = aluresult"<<endl;
                         break;
                     }
+                    cout<<"Write "<<RF[rd]<<" to register "<<rd<<endl;   
                     currentPCAdd = currentPCAdd.to_ulong()+4;
-                    cout<<"pc+=4"<<endl;
+                    cout<<"Current PC updated to PC+4"<<endl;
                     break;
                 }
             }
@@ -1085,14 +1083,15 @@ class Write_Back{
             switch(rfwrite){
                 case 0: //conditional branch
                 currentPCAdd = nextPCAdd.to_ulong();
-                cout<<"Condtional branch"<<", currenpc="<<currentPCAdd<<endl;
+                cout<<"Condtional branch"<<", current PC = "<<currentPCAdd<<endl;
                 
                 break;
 
                 case 1://jal
                 RF[rd] = currentPCAdd.to_ulong()+4;
                 currentPCAdd = nextPCAdd.to_ulong();
-                cout<<"rd = pc+4; pc+=imm"<<endl;
+                cout<<"Write "<<RF[rd]<<" to register "<<rd<<endl;
+                cout<<"Current PC address updated to: "<<currentPCAdd;
                 break;
             }
             break;
@@ -1100,7 +1099,8 @@ class Write_Back{
             case 2://jalr
             RF[rd] = currentPCAdd.to_ulong()+4;
             currentPCAdd = aluresult;
-            cout<<"rd = pc+4; pc=rs1 + imm"<<endl;
+            cout<<"Write "<<RF[rd]<<" to register "<<rd<<endl;
+            cout<<"Current PC address updated to: "<<currentPCAdd;
             break;
         }
         RF[0]=0;  //x0 is always 0;
