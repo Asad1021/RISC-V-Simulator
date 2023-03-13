@@ -633,7 +633,7 @@ class Decode
 
                     hs_de_ex.mem_OP=0;
                     hs_de_ex.RFWrite= 1;
-                    hs_de_ex.Result_select=3;
+                    hs_de_ex.Result_select=1;
                     
                 }
 
