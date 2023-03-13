@@ -980,12 +980,12 @@ class Memory_Access{
                 switch(storeloadop){
                     case 0: 
                     memory_arr[aluresult] = memop2&255;//sb
-                    cout<<"Storing byte "<< memop2&255 <<endl;
+                    cout<<"Storing byte "<< (memop2&255) <<endl;
                     break;
 
                     case 1:
                     memory_arr[aluresult] = memop2&65535;//sh
-                    cout<<"Storing half-word "<<memop2&65535<<endl;
+                    cout<<"Storing half-word "<<(memop2&65535)<<endl;
                     break;
 
                     case 2:
@@ -1002,7 +1002,7 @@ class Memory_Access{
                 case 0:
                 loaddata = memory_arr[aluresult];//lb
                 loaddata = loaddata & 255;
-                cout<<"Loading byte in register"<<<<endl;
+                cout<<"Loading byte in register"<<endl;
                 break;
                 
                 case 1:
@@ -1123,7 +1123,7 @@ void RISCv_Processor()
         Fetch a(1);
         Decode b;
         Execute c;
-        Memory_Acess d;
+        Memory_Access d;
         Write_Back e;
     }
 }

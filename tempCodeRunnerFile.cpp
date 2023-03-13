@@ -1,1 +1,1 @@
-5:sll
+0:byte 1:half 2:word
