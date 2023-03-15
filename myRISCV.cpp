@@ -3,6 +3,8 @@
 #include <string>
 #include <bitset>
 #include <string>
+#include <cstdlib>
+
 
 #define MEMORY_SIZE 120000
 // immb conversion is always a unsigned operation hence we have to convert it to signed one by using typecast
@@ -65,7 +67,7 @@ typedef struct ma_wb_handshake
     int loaded_mem;
 } MA_WB;
 MA_WB hs_ma_wb;
-int memory_arr[MEMORY_SIZE];
+char *memory_arr = (char*) calloc(MEMORY_SIZE,sizeof(char));
 #pragma endregion MEM_ACC_RELATED_DATA
 
 class Fetch
@@ -113,7 +115,12 @@ class Fetch
 
             for (int i = 0; i < MEMORY_SIZE; i++)
             {
-                memFile << i << ": " << memory_arr[i] << (((i + 1) % 4 == 0) ? "\n" : "  |");
+                unsigned int temp = (unsigned int)(*(memory_arr+i));
+                if(temp>INT32_MAX)
+                {
+                    temp = temp - 0xffffff00;
+                }
+                memFile << i << ": " << hex<<temp << (((i + 1) % 4 == 0) ? "\n" : "  |");
             }
 
             cout << "\nRegister File is: \n";
@@ -959,7 +966,10 @@ class Memory_Access
     void memory_access()
     {
         int memop = hs_de_ex.mem_OP;
+
         int aluresult = hs_ex_ma.ALU_result;
+        int *mem_add = (int*) (memory_arr+aluresult);
+
         int storeloadop = hs_de_ex.Store_load_op;
         int memop2 = hs_de_ex.Mem_Op2;
         int loaddata;
@@ -978,17 +988,17 @@ class Memory_Access
             switch (storeloadop)
             {
             case 0:
-                memory_arr[aluresult] = memop2 & 255; // sb
+                *mem_add = memop2 & 255; // sb
                 cout << "Storing byte " << (memop2 & 255) << endl;
                 break;
 
             case 1:
-                memory_arr[aluresult] = memop2 & 65535; // sh
+                *mem_add = memop2 & 65535; // sh
                 cout << "Storing half-word " << (memop2 & 65535) << endl;
                 break;
 
             case 2:
-                memory_arr[aluresult] = memop2; // sw
+                *mem_add = memop2; // sw
                 cout << "Storing word " << memop2 << endl;
                 break;
             }
@@ -1000,19 +1010,19 @@ class Memory_Access
             switch (storeloadop)
             {
             case 0:
-                loaddata = memory_arr[aluresult]; // lb
+                loaddata = *mem_add; // lb
                 loaddata = loaddata & 255;
                 cout << "Loading byte in register" << endl;
                 break;
 
             case 1:
-                loaddata = memory_arr[aluresult]; // lh
+                loaddata = *mem_add; // lh
                 loaddata = loaddata & 65535;
                 cout << "Loading half-word in register" << endl;
                 break;
 
             case 2:
-                loaddata = memory_arr[aluresult]; // lw
+                loaddata = *mem_add; // lw
                 cout << "Loading word in register" << endl;
                 break;
             }
@@ -1124,7 +1134,7 @@ public:
 
 void RISCv_Processor()
 {
-    RF[2] = MEMORY_SIZE - 1;
+    RF[2] = MEMORY_SIZE - 0xc;
     while (1)
     {
         Fetch a(1);
