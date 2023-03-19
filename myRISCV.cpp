@@ -4,7 +4,7 @@
 #include <bitset>
 #include <string>
 
-#define MEMORY_SIZE 120000
+#define MEMORY_SIZE 12000
 //immb conversion is always a unsigned operation hence we have to convert it to signed one by using typecast
 //immB+PC; immB=immb.to_ulong();//unsigned
 
