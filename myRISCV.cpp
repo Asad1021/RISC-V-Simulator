@@ -110,7 +110,7 @@ class Fetch
             cout << endl
                  << "EXITING...\n";
 
-            ofstream memFile; // storing the memmory array in a txt file
+            ofstream memFile; // storing the memmory array in a txt file.
             memFile.open("Memory_Dump.txt");
 
             for (int i = 0; i < MEMORY_SIZE; i++)
