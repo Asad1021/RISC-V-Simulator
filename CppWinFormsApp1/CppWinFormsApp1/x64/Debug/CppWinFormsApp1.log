@@ -1,0 +1,4 @@
+﻿  MyForm.cpp
+D:\GitHub\RISC-V-Simulator\CppWinFormsApp1\CppWinFormsApp1\MyForm.cpp(8,33): warning C4829: Possibly incorrect parameters to function main. Consider 'int main(Platform::Array<Platform::String^>^ argv)'
+  MyForm.obj : MSIL module encountered; incremental linking is disabled for MSIL; performing full link
+  CppWinFormsApp1.vcxproj -> D:\GitHub\RISC-V-Simulator\CppWinFormsApp1\x64\Debug\CppWinFormsApp1.exe

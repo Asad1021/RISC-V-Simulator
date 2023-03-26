@@ -1,0 +1,4 @@
+D:\GitHub\RISC-V-Simulator\CppWinFormsApp1\CppWinFormsApp1\x64\Debug\CppWinFormsApp1.vcxproj.AssemblyReference.cache
+D:\GitHub\RISC-V-Simulator\CppWinFormsApp1\CppWinFormsApp1\x64\Debug\CppWinFormsApp1.vcxproj.SuggestedBindingRedirects.cache
+D:\GitHub\RISC-V-Simulator\CppWinFormsApp1\CppWinFormsApp1\x64\Debug\CppWinFormsApp1.MyForm.resources
+D:\GitHub\RISC-V-Simulator\CppWinFormsApp1\CppWinFormsApp1\x64\Debug\CppWinFormsApp1.vcxproj.GenerateResource.cache
