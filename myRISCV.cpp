@@ -121,6 +121,7 @@ class Fetch
             }
 
             cout<<"No. of Clock cycle used: "<<Clock;
+            memFile.close();
 
             exit(0);
         }
