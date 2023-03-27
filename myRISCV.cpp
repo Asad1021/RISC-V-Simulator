@@ -15,7 +15,8 @@ using namespace std;
 int Clock = 0; // this will store the No. of Clock cycle used for a program
 
 #pragma region FILE_RELATED_DATA
-               //  stores the file name of the dump file
+void printRF();
+ //  stores the file name of the dump file
 string filename;
 ifstream readFile("input.mc");
 #pragma endregion FILE_RELATED_DATA
@@ -122,12 +123,9 @@ class Fetch
                 }
                 memFile << i << ": " << hex<<temp << (((i + 1) % 4 == 0) ? "\n" : "  |");
             }
+            memFile.close();
 
-            cout << "\nRegister File is: \n";
-            for (int i = 0; i < 32; i++)
-            {
-                cout << "x" << i << "=" << RF[i] << endl;
-            }
+            printRF();
 
             cout << "No. of Clock cycle used: " << Clock;
 
@@ -206,6 +204,14 @@ void make_file()
 
     infile.close();
     outfile.close();
+}
+
+void printRF(){
+    cout << "\nRegister File is: \n";
+        for (int i = 0; i < 32; i++)
+        {
+            cout << "x" << i << "=" << RF[i] << endl;
+        }
 }
 
 class Decode
