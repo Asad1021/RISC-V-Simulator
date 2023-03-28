@@ -46,6 +46,24 @@ typedef struct if_de_hs_de_ex
     int Mem_Op2;              // OP2 input for memmory
 } If_DE;
 If_DE hs_de_ex;
+
+typedef struct de_ex_pipeline 
+{
+    int Op1, Op2; // oprands
+    int Rd;       // RF write destinstion
+    int imm, immU, immS, immJ, immB;
+    int branch_target_select; // 0 for immB; 1 for immJ
+    int Result_select;        // 0:PC+4 ; 1:ImmU; 2:Load data; 3: ALU result
+    int ALU_Operation;        // 0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt 9:beq 10:bne 11:blt 12:bge 13:lui 14:jal 15:jalr 16: auipc
+    int mem_OP;               // 0:No operation 1:write 2:read
+    int RFWrite;              // 0: no write operation 1:for write operation
+    int Store_load_op;        // 0:byte 1:half 2:word//to be used by mem to decide how many bit to store
+    int Mem_Op2;  
+
+} de_ex_pipe;
+
+de_ex_pipe de_ex_mainPipeline,de_ex_Copy,de_ex_No_Op;
+
 int RF[32]; // Register file
 #pragma endregion DECODE_RELATED_DATA
 
@@ -59,12 +77,12 @@ typedef struct ex_ma_handshake
     // branch target address
 } EX_MA;
 EX_MA hs_ex_ma;
+
 #pragma endregion EXECUTE_RELATED_DATA
 
 #pragma region MEM_ACC_RELATED_DATA
 typedef struct ma_wb_handshake
-{
-    // handshake register between memory access and write back
+{   // handshake register between memory access and write back
     int loaded_mem;
 } MA_WB;
 MA_WB hs_ma_wb;
@@ -750,6 +768,23 @@ class Decode
         }
 
         cout << "\n### End Decode ###\n\n";
+
+        // copying the data to Copy Of the pipe line
+        de_ex_Copy.Op1  = hs_de_ex.Op1;
+        de_ex_Copy.Op2 = hs_de_ex.Op2;
+        de_ex_Copy.Rd  = hs_de_ex.Rd;     
+        de_ex_Copy.imm = hs_de_ex.imm;
+        de_ex_Copy.immU = hs_de_ex.immU;
+        de_ex_Copy.immS = hs_de_ex.immS;
+        de_ex_Copy.immJ = hs_de_ex.immJ;
+        de_ex_Copy.immB = hs_de_ex.immB;
+        de_ex_Copy.branch_target_select = hs_de_ex.branch_target_select;
+        de_ex_Copy.Result_select    = hs_de_ex.Result_select;
+        de_ex_Copy.ALU_Operation   = hs_de_ex.ALU_Operation;
+        de_ex_Copy.mem_OP  = hs_de_ex.mem_OP;
+        de_ex_Copy.RFWrite = hs_de_ex.RFWrite;
+        de_ex_Copy.Store_load_op = hs_de_ex.Store_load_op;
+        de_ex_Copy.Mem_Op2 = hs_de_ex.Mem_Op2;
     }
 
 public:
@@ -1152,8 +1187,35 @@ void RISCv_Processor()
     }
 }
 
+void init_NoOps()
+{
+    {// here is the NoOp(add x0 x0 x0) instructiion for if_de stage pipeline
+        de_ex_No_Op.Op1  = 0;//op1 is always 0
+        de_ex_No_Op.Op2 = 0;//op2 is always 0
+        de_ex_No_Op.Rd  = 0;//return destonation is x0
+        de_ex_No_Op.imm = 0;//don't care
+        de_ex_No_Op.immU = 0;//don't care
+        de_ex_No_Op.immS = 0;//don't care
+        de_ex_No_Op.immJ = 0;//don't care
+        de_ex_No_Op.immB = 0;//don't care
+        de_ex_No_Op.branch_target_select = 0;//don't care
+        de_ex_No_Op.Result_select = 3;//Alu result
+        de_ex_No_Op.ALU_Operation = 0;//add
+        de_ex_No_Op.mem_OP  = 0;//no operation
+        de_ex_No_Op.RFWrite = 1;//write operation
+        de_ex_No_Op.Store_load_op = 0;//don't care
+        de_ex_No_Op.Mem_Op2 = 0;//don't care
+    }
+
+    {
+
+    }
+
+}
+
 int main()
 {
+    init_NoOps();
     make_file();
     RISCv_Processor();
     return 0;
