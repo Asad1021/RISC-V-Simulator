@@ -78,6 +78,24 @@ typedef struct ex_ma_handshake
 } EX_MA;
 EX_MA hs_ex_ma;
 
+typedef struct ex_ma_pipeline
+{
+    int ALU_result;   //will store the result of the alu
+    int isBranch;     // will tell whether to branch or not
+    int PC_plus_four; // PC + 4
+    
+    int Rd;                   // RF write destinstion
+    int immU;                 // to be written in the rd
+    int branch_target_select; // 0 for immB; 1 for immJ
+    int Result_select;        // 0:PC+4 ; 1:ImmU; 2:Load data; 3: ALU result
+    int mem_OP;               // 0:No operation 1:write 2:read
+    int RFWrite;              // 0: no write operation 1:for write operation
+    int Store_load_op;        // 0:byte 1:half 2:word//to be used by mem to decide how many bit to store
+    int Mem_Op2;
+} ex_ma_pipe;
+
+ex_ma_pipe ex_ma_mainPipeline,ex_ma_Copy,ex_ma_No_Op;
+
 #pragma endregion EXECUTE_RELATED_DATA
 
 #pragma region MEM_ACC_RELATED_DATA
@@ -86,7 +104,24 @@ typedef struct ma_wb_handshake
     int loaded_mem;
 } MA_WB;
 MA_WB hs_ma_wb;
+
 char *memory_arr = (char*) calloc(MEMORY_SIZE,sizeof(char));
+
+typedef struct ma_wb_pipeline
+{
+    int loaded_mem;
+
+    int Rd;                   // RF write destinstion
+    int immU;                 // to be written in the rd
+    // int branch_target_select; // 0 for immB; 1 for immJ
+    int Result_select;        // 0:PC+4 ; 1:ImmU; 2:Load data; 3: ALU result
+    int RFWrite;              // 0: no write operation 1:for write operation
+    int PC_plus_four;
+    int ALU_result;   //will store the result of the alu
+    int isBranch;     // will tell whether to branch or not
+} ma_wb_pipe;
+
+ma_wb_pipe ma_wb_mainPipeline,ma_wb_Copy,ma_wb_No_Op;
 #pragma endregion MEM_ACC_RELATED_DATA
 
 class Fetch
@@ -1189,7 +1224,7 @@ void RISCv_Processor()
 
 void init_NoOps()
 {
-    {// here is the NoOp(add x0 x0 x0) instructiion for if_de stage pipeline
+    {// here is the NoOp(add x0 x0 x0) instructiion for de-ex stage pipeline
         de_ex_No_Op.Op1  = 0;//op1 is always 0
         de_ex_No_Op.Op2 = 0;//op2 is always 0
         de_ex_No_Op.Rd  = 0;//return destonation is x0
@@ -1207,7 +1242,32 @@ void init_NoOps()
         de_ex_No_Op.Mem_Op2 = 0;//don't care
     }
 
-    {
+    {// here is the NoOp(add x0 x0 x0) instructiion for ex_ma stage pipeline
+        ex_ma_No_Op.isBranch=0;     // will tell whether to branch or not
+        ex_ma_No_Op.PC_plus_four = currentPCAdd.to_ulong() + 4; // PC + 4//############this will not be the case#######################
+        ex_ma_No_Op.ALU_result=0;   //will store the result of the alu
+        
+        ex_ma_No_Op.Rd=0;                   // RF write destinstion
+        ex_ma_No_Op.immU=0;                 //don't care
+        ex_ma_No_Op.branch_target_select=0; //don't care
+        ex_ma_No_Op.Result_select=3;        // 3: ALU result
+        ex_ma_No_Op.mem_OP=0;               // 0:No operation
+        ex_ma_No_Op.RFWrite=1;              //1:for write operation
+        ex_ma_No_Op.Store_load_op=0;        // dont care
+        ex_ma_No_Op.Mem_Op2=0;              //dont care
+    }
+
+    {// here is the NoOp(add x0 x0 x0) instructiion for ma_wb stage pipeline
+        ma_wb_No_Op.loaded_mem=0;//dont care
+
+        ma_wb_No_Op.Rd=0;                   // RF write destinstion
+        ma_wb_No_Op.immU=0;                 //dont care
+        // int branch_target_select=0; // 0 for immB; 1 for immJ
+        ma_wb_No_Op.Result_select=3;        //3: ALU result
+        ma_wb_No_Op.RFWrite=1;              //1:for write operation
+        ma_wb_No_Op.PC_plus_four=currentPCAdd.to_ulong() + 4;//#################this will not be the case#######################
+        ma_wb_No_Op.ALU_result=0;   //will store the result of the alu
+        ma_wb_No_Op.isBranch=0;     // will tell whether to branch or not
 
     }
 
