@@ -5,7 +5,6 @@
 #include <string>
 #include <cstdlib>
 
-
 #define MEMORY_SIZE 120000
 // immb conversion is always a unsigned operation hence we have to convert it to signed one by using typecast
 // immB+PC; immB=immb.to_ulong();//unsigned
@@ -16,7 +15,7 @@ int Clock = 0; // this will store the No. of Clock cycle used for a program
 
 #pragma region FILE_RELATED_DATA
 void printRF();
- //  stores the file name of the dump file
+//  stores the file name of the dump file
 string filename;
 ifstream readFile("input.mc");
 #pragma endregion FILE_RELATED_DATA
@@ -47,7 +46,7 @@ typedef struct if_de_hs_de_ex
 } If_DE;
 If_DE hs_de_ex;
 
-typedef struct de_ex_pipeline 
+typedef struct de_ex_pipeline
 {
     int Op1, Op2; // oprands
     int Rd;       // RF write destinstion
@@ -58,11 +57,11 @@ typedef struct de_ex_pipeline
     int mem_OP;               // 0:No operation 1:write 2:read
     int RFWrite;              // 0: no write operation 1:for write operation
     int Store_load_op;        // 0:byte 1:half 2:word//to be used by mem to decide how many bit to store
-    int Mem_Op2;  
+    int Mem_Op2;
 
 } de_ex_pipe;
 
-de_ex_pipe de_ex_mainPipeline,de_ex_Copy,de_ex_No_Op;
+de_ex_pipe de_ex_mainPipeline, de_ex_Copy, de_ex_No_Op;
 
 int RF[32]; // Register file
 #pragma endregion DECODE_RELATED_DATA
@@ -80,10 +79,10 @@ EX_MA hs_ex_ma;
 
 typedef struct ex_ma_pipeline
 {
-    int ALU_result;   //will store the result of the alu
+    int ALU_result;   // will store the result of the alu
     int isBranch;     // will tell whether to branch or not
     int PC_plus_four; // PC + 4
-    
+
     int Rd;                   // RF write destinstion
     int immU;                 // to be written in the rd
     int branch_target_select; // 0 for immB; 1 for immJ
@@ -94,34 +93,34 @@ typedef struct ex_ma_pipeline
     int Mem_Op2;
 } ex_ma_pipe;
 
-ex_ma_pipe ex_ma_mainPipeline,ex_ma_Copy,ex_ma_No_Op;
+ex_ma_pipe ex_ma_mainPipeline, ex_ma_Copy, ex_ma_No_Op;
 
 #pragma endregion EXECUTE_RELATED_DATA
 
 #pragma region MEM_ACC_RELATED_DATA
 typedef struct ma_wb_handshake
-{   // handshake register between memory access and write back
+{ // handshake register between memory access and write back
     int loaded_mem;
 } MA_WB;
 MA_WB hs_ma_wb;
 
-char *memory_arr = (char*) calloc(MEMORY_SIZE,sizeof(char));
+char *memory_arr = (char *)calloc(MEMORY_SIZE, sizeof(char));
 
 typedef struct ma_wb_pipeline
 {
     int loaded_mem;
 
-    int Rd;                   // RF write destinstion
-    int immU;                 // to be written in the rd
+    int Rd;   // RF write destinstion
+    int immU; // to be written in the rd
     // int branch_target_select; // 0 for immB; 1 for immJ
-    int Result_select;        // 0:PC+4 ; 1:ImmU; 2:Load data; 3: ALU result
-    int RFWrite;              // 0: no write operation 1:for write operation
+    int Result_select; // 0:PC+4 ; 1:ImmU; 2:Load data; 3: ALU result
+    int RFWrite;       // 0: no write operation 1:for write operation
     int PC_plus_four;
-    int ALU_result;   //will store the result of the alu
-    int isBranch;     // will tell whether to branch or not
+    int ALU_result; // will store the result of the alu
+    int isBranch;   // will tell whether to branch or not
 } ma_wb_pipe;
 
-ma_wb_pipe ma_wb_mainPipeline,ma_wb_Copy,ma_wb_No_Op;
+ma_wb_pipe ma_wb_mainPipeline, ma_wb_Copy, ma_wb_No_Op;
 #pragma endregion MEM_ACC_RELATED_DATA
 
 class Fetch
@@ -169,12 +168,12 @@ class Fetch
 
             for (int i = 0; i < MEMORY_SIZE; i++)
             {
-                unsigned int temp = (unsigned int)(*(memory_arr+i));
-                if(temp>INT32_MAX)
+                unsigned int temp = (unsigned int)(*(memory_arr + i));
+                if (temp > INT32_MAX)
                 {
                     temp = temp - 0xffffff00;
                 }
-                memFile << i << ": " << hex<<temp << (((i + 1) % 4 == 0) ? "\n" : "  |");
+                memFile << i << ": " << hex << temp << (((i + 1) % 4 == 0) ? "\n" : "  |");
             }
             memFile.close();
 
@@ -259,12 +258,13 @@ void make_file()
     outfile.close();
 }
 
-void printRF(){
+void printRF()
+{
     cout << "\nRegister File is: \n";
-        for (int i = 0; i < 32; i++)
-        {
-            cout << "x" << i << "=" << RF[i] << endl;
-        }
+    for (int i = 0; i < 32; i++)
+    {
+        cout << "x" << i << "=" << RF[i] << endl;
+    }
 }
 
 class Decode
@@ -805,18 +805,18 @@ class Decode
         cout << "\n### End Decode ###\n\n";
 
         // copying the data to Copy Of the pipe line
-        de_ex_Copy.Op1  = hs_de_ex.Op1;
+        de_ex_Copy.Op1 = hs_de_ex.Op1;
         de_ex_Copy.Op2 = hs_de_ex.Op2;
-        de_ex_Copy.Rd  = hs_de_ex.Rd;     
+        de_ex_Copy.Rd = hs_de_ex.Rd;
         de_ex_Copy.imm = hs_de_ex.imm;
         de_ex_Copy.immU = hs_de_ex.immU;
         de_ex_Copy.immS = hs_de_ex.immS;
         de_ex_Copy.immJ = hs_de_ex.immJ;
         de_ex_Copy.immB = hs_de_ex.immB;
         de_ex_Copy.branch_target_select = hs_de_ex.branch_target_select;
-        de_ex_Copy.Result_select    = hs_de_ex.Result_select;
-        de_ex_Copy.ALU_Operation   = hs_de_ex.ALU_Operation;
-        de_ex_Copy.mem_OP  = hs_de_ex.mem_OP;
+        de_ex_Copy.Result_select = hs_de_ex.Result_select;
+        de_ex_Copy.ALU_Operation = hs_de_ex.ALU_Operation;
+        de_ex_Copy.mem_OP = hs_de_ex.mem_OP;
         de_ex_Copy.RFWrite = hs_de_ex.RFWrite;
         de_ex_Copy.Store_load_op = hs_de_ex.Store_load_op;
         de_ex_Copy.Mem_Op2 = hs_de_ex.Mem_Op2;
@@ -1044,7 +1044,7 @@ class Memory_Access
         int memop = hs_de_ex.mem_OP;
 
         int aluresult = hs_ex_ma.ALU_result;
-        int *mem_add = (int*) (memory_arr+aluresult);
+        int *mem_add = (int *)(memory_arr + aluresult);
 
         int storeloadop = hs_de_ex.Store_load_op;
         int memop2 = hs_de_ex.Mem_Op2;
@@ -1210,67 +1210,126 @@ public:
 
 void RISCv_Processor()
 {
+    bool ispipeLine = false;
+
     RF[2] = MEMORY_SIZE - 0xc;
     while (1)
     {
-        Fetch a(1);
-        Decode b;
-        Execute c;
-        Memory_Access d;
-        Write_Back e;
-        Clock++;
+        if (ispipeLine)
+        {
+            Fetch a(1);
+            Decode b;
+            Execute c;
+            Memory_Access d;
+            Write_Back e;
+            Clock++;
+        }
+        else
+        {
+            Fetch a(1);
+            //copy here to the main pipe line
+            Decode b;
+            //copy here to the main pipe line
+            {
+                de_ex_mainPipeline.Op2 = de_ex_Copy.Op2;                  
+                de_ex_mainPipeline.Op1 = de_ex_Copy.Op1;                  
+                de_ex_mainPipeline.Rd = de_ex_Copy.Rd;                   
+                de_ex_mainPipeline.imm =  de_ex_Copy.imm;                  
+                de_ex_mainPipeline.immU = de_ex_Copy.immU ;                 
+                de_ex_mainPipeline.immS = de_ex_Copy.immS;                 
+                de_ex_mainPipeline.immJ = de_ex_Copy.immJ;                 
+                de_ex_mainPipeline.immB = de_ex_Copy.immB;                 
+                de_ex_mainPipeline.branch_target_select = de_ex_Copy.branch_target_select; 
+                de_ex_mainPipeline.Result_select = de_ex_Copy.Result_select ;        
+                de_ex_mainPipeline.ALU_Operation = de_ex_Copy.ALU_Operation;
+                de_ex_mainPipeline.mem_OP = de_ex_Copy.mem_OP;               
+                de_ex_mainPipeline.RFWrite = de_ex_Copy.RFWrite;              
+                de_ex_mainPipeline.Store_load_op = de_ex_Copy.Store_load_op;        
+                de_ex_mainPipeline.Mem_Op2 = de_ex_Copy.Mem_Op2; 
+            }             
+            Execute c;
+            //copy here to the main pipe line
+            {
+                ex_ma_mainPipeline.isBranch = ex_ma_Copy.isBranch;                               // will tell whether to branch or not
+                ex_ma_mainPipeline.PC_plus_four = currentPCAdd.to_ulong() + 4; // PC + 4//############this will not be the case#######################
+                ex_ma_mainPipeline.ALU_result =  ex_ma_Copy.ALU_result;                             // will store the result of the alu
+
+                ex_ma_mainPipeline.Rd = ex_ma_Copy.Rd;                   // RF write destinstion
+                ex_ma_mainPipeline.immU = ex_ma_Copy.immU;                 // don't care
+                ex_ma_mainPipeline.branch_target_select = ex_ma_Copy.branch_target_select; // don't care
+                ex_ma_mainPipeline.Result_select =  ex_ma_Copy.Result_select;        // 3: ALU result
+                ex_ma_mainPipeline.mem_OP = ex_ma_Copy.mem_OP;               // 0:No operation
+                ex_ma_mainPipeline.RFWrite = ex_ma_Copy.RFWrite;              // 1:for write operation
+                ex_ma_mainPipeline.Store_load_op = ex_ma_Copy.Store_load_op;        // dont care
+                ex_ma_mainPipeline.Mem_Op2 =ex_ma_Copy.Mem_Op2;    
+            }
+            Memory_Access d;
+            //copy here to the main pipe line
+            {
+                ma_wb_mainPipeline.loaded_mem = ma_wb_Copy.loaded_mem; // dont care
+
+                ma_wb_mainPipeline.Rd = ma_wb_Copy.Rd;   // RF write destinstion
+                ma_wb_mainPipeline.immU = ma_wb_Copy.immU; // dont care
+                // intmama_wb_mainPipelinech_target_select=0; // 0 for immB; 1 for immJ
+                ma_wb_mainPipeline.Result_select = ma_wb_Copy.Result_select;                          // 3: ALU result
+                ma_wb_mainPipeline.RFWrite = ma_wb_Copy.RFWrite;                                // 1:for write operation
+                ma_wb_mainPipeline.PC_plus_four = currentPCAdd.to_ulong() + 4; // #################this will not be the case#######################
+                ma_wb_mainPipeline.ALU_result = ma_wb_Copy.ALU_result ;                             // will store the result of the alu
+                ma_wb_mainPipeline.isBranch = ma_wb_Copy.isBranch;    
+            }
+            Write_Back e;
+            
+        }
     }
 }
 
 void init_NoOps()
 {
-    {// here is the NoOp(add x0 x0 x0) instructiion for de-ex stage pipeline
-        de_ex_No_Op.Op1  = 0;//op1 is always 0
-        de_ex_No_Op.Op2 = 0;//op2 is always 0
-        de_ex_No_Op.Rd  = 0;//return destonation is x0
-        de_ex_No_Op.imm = 0;//don't care
-        de_ex_No_Op.immU = 0;//don't care
-        de_ex_No_Op.immS = 0;//don't care
-        de_ex_No_Op.immJ = 0;//don't care
-        de_ex_No_Op.immB = 0;//don't care
-        de_ex_No_Op.branch_target_select = 0;//don't care
-        de_ex_No_Op.Result_select = 3;//Alu result
-        de_ex_No_Op.ALU_Operation = 0;//add
-        de_ex_No_Op.mem_OP  = 0;//no operation
-        de_ex_No_Op.RFWrite = 1;//write operation
-        de_ex_No_Op.Store_load_op = 0;//don't care
-        de_ex_No_Op.Mem_Op2 = 0;//don't care
+    {   // here is the NoOp(add x0 x0 x0) instructiion for de-ex stage pipeline
+        de_ex_No_Op.Op1 = 0;                  // op1 is always 0
+        de_ex_No_Op.Op2 = 0;                  // op2 is always 0
+        de_ex_No_Op.Rd = 0;                   // return destonation is x0
+        de_ex_No_Op.imm = 0;                  // don't care
+        de_ex_No_Op.immU = 0;                 // don't care
+        de_ex_No_Op.immS = 0;                 // don't care
+        de_ex_No_Op.immJ = 0;                 // don't care
+        de_ex_No_Op.immB = 0;                 // don't care
+        de_ex_No_Op.branch_target_select = 0; // don't care
+        de_ex_No_Op.Result_select = 3;        // Alu result
+        de_ex_No_Op.ALU_Operation = 0;        // add
+        de_ex_No_Op.mem_OP = 0;               // no operation
+        de_ex_No_Op.RFWrite = 1;              // write operation
+        de_ex_No_Op.Store_load_op = 0;        // don't care
+        de_ex_No_Op.Mem_Op2 = 0;              // don't care
     }
 
-    {// here is the NoOp(add x0 x0 x0) instructiion for ex_ma stage pipeline
-        ex_ma_No_Op.isBranch=0;     // will tell whether to branch or not
+    {                                                           // here is the NoOp(add x0 x0 x0) instructiion for ex_ma stage pipeline
+        ex_ma_No_Op.isBranch = 0;                               // will tell whether to branch or not
         ex_ma_No_Op.PC_plus_four = currentPCAdd.to_ulong() + 4; // PC + 4//############this will not be the case#######################
-        ex_ma_No_Op.ALU_result=0;   //will store the result of the alu
-        
-        ex_ma_No_Op.Rd=0;                   // RF write destinstion
-        ex_ma_No_Op.immU=0;                 //don't care
-        ex_ma_No_Op.branch_target_select=0; //don't care
-        ex_ma_No_Op.Result_select=3;        // 3: ALU result
-        ex_ma_No_Op.mem_OP=0;               // 0:No operation
-        ex_ma_No_Op.RFWrite=1;              //1:for write operation
-        ex_ma_No_Op.Store_load_op=0;        // dont care
-        ex_ma_No_Op.Mem_Op2=0;              //dont care
+        ex_ma_No_Op.ALU_result = 0;                             // will store the result of the alu
+
+        ex_ma_No_Op.Rd = 0;                   // RF write destinstion
+        ex_ma_No_Op.immU = 0;                 // don't care
+        ex_ma_No_Op.branch_target_select = 0; // don't care
+        ex_ma_No_Op.Result_select = 3;        // 3: ALU result
+        ex_ma_No_Op.mem_OP = 0;               // 0:No operation
+        ex_ma_No_Op.RFWrite = 1;              // 1:for write operation
+        ex_ma_No_Op.Store_load_op = 0;        // dont care
+        ex_ma_No_Op.Mem_Op2 = 0;              // dont care
     }
 
-    {// here is the NoOp(add x0 x0 x0) instructiion for ma_wb stage pipeline
-        ma_wb_No_Op.loaded_mem=0;//dont care
+    {                               // here is the NoOp(add x0 x0 x0) instructiion for ma_wb stage pipeline
+        ma_wb_No_Op.loaded_mem = 0; // dont care
 
-        ma_wb_No_Op.Rd=0;                   // RF write destinstion
-        ma_wb_No_Op.immU=0;                 //dont care
+        ma_wb_No_Op.Rd = 0;   // RF write destinstion
+        ma_wb_No_Op.immU = 0; // dont care
         // int branch_target_select=0; // 0 for immB; 1 for immJ
-        ma_wb_No_Op.Result_select=3;        //3: ALU result
-        ma_wb_No_Op.RFWrite=1;              //1:for write operation
-        ma_wb_No_Op.PC_plus_four=currentPCAdd.to_ulong() + 4;//#################this will not be the case#######################
-        ma_wb_No_Op.ALU_result=0;   //will store the result of the alu
-        ma_wb_No_Op.isBranch=0;     // will tell whether to branch or not
-
+        ma_wb_No_Op.Result_select = 3;                          // 3: ALU result
+        ma_wb_No_Op.RFWrite = 1;                                // 1:for write operation
+        ma_wb_No_Op.PC_plus_four = currentPCAdd.to_ulong() + 4; // #################this will not be the case#######################
+        ma_wb_No_Op.ALU_result = 0;                             // will store the result of the alu
+        ma_wb_No_Op.isBranch = 0;                               // will tell whether to branch or not
     }
-
 }
 
 int main()
