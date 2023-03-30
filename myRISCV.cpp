@@ -69,7 +69,7 @@ typedef struct ma_wb_handshake
 MA_WB hs_ma_wb;
 char *memory_arr = (char*) calloc(MEMORY_SIZE,sizeof(char));
 #pragma endregion MEM_ACC_RELATED_DATA
-
+int count=0;
 class Fetch
 {
     bitset<32> fetch_instruction(int flag)
@@ -103,11 +103,11 @@ class Fetch
         }
 
         bitset<32> currentInstruction = HexStringToBitset(hex_str);
-        // cout<<endl<<"READING INSTRUCTION "<<hex_str<<endl;
+        // cerr<<endl<<"READING INSTRUCTION "<<hex_str<<endl;
 
         if (currentInstruction == exitInstruction)
         {
-            cout << endl
+            cerr << endl
                  << "EXITING...\n";
 
             ofstream memFile; // storing the memmory array in a txt file.
@@ -123,13 +123,14 @@ class Fetch
                 memFile << i << ": " << hex<<temp << (((i + 1) % 4 == 0) ? "\n" : "  |");
             }
 
-            cout << "\nRegister File is: \n";
+            cerr << "\nRegister File is: \n";
             for (int i = 0; i < 32; i++)
             {
-                cout << "x" << i << "=" << RF[i] << endl;
+                cerr << "x" << i << "=" << RF[i] << endl;
             }
 
-            cout << "No. of Clock cycle used: " << Clock;
+            cerr << "No. of Clock cycle used: " << Clock;
+            printf("\nkakakakak %d\n",count);
 
             exit(0);
         }
@@ -162,16 +163,17 @@ class Fetch
 public:
     Fetch(int flag = 0)
     {
-        cout << "\n### Fetch ###\n\n";
+        cerr << "\n### Fetch ###\n\n";
         currentInstruction = fetch_instruction(flag);
-        cout << "FETCH:Fetch instruction " << currentInstruction << " From address " << currentPCAdd << endl;
-        cout << "\n### End Fetch ###\n\n";
+        cerr << "FETCH:Fetch instruction " << currentInstruction << " From address " << currentPCAdd << endl;
+        cerr << "\n### End Fetch ###\n\n";
     }
 };
+
 // makes .mc file
 void make_file()
 {
-    cout << "Enter input filename: ";
+    cerr << "Enter input filename: ";
     cin >> filename;
 
     ifstream infile;
@@ -189,19 +191,21 @@ void make_file()
 
     string line;
     int offset = 0;
+    
 
     while (getline(infile, line))
     {
-        // cout << "0x" << hex<<offset << " " << line << endl;
+        // cerr << "0x" << hex<<offset << " " << line << endl;
         // skip 0x part
         string hex_str = line;
         hex_str = "0x" + line;
         // stoul converts string of type 0x012312 to its decimal value
         unsigned long hex_to_dec_val = stoul(hex_str, nullptr, 16);
         bitset<32> binary_num(hex_to_dec_val);
-        // cout<<binary_num<<endl;
+        // cerr<<binary_num<<endl;
         outfile << "0x" << hex << offset << " " << line << endl;
         offset += 4; // increase offset by 4 characters
+        count++;
     }
 
     infile.close();
@@ -212,7 +216,7 @@ class Decode
 {
     void Decode_Instruction()
     {
-        cout << "\n### Decode ###\n\n";
+        cerr << "\n### Decode ###\n\n";
         bitset<5> opcode;
         char type_of_instruction;
 
@@ -252,7 +256,7 @@ class Decode
         {
         case 'R':
         {
-            cout << "\nDECODE: ";
+            cerr << "\nDECODE: ";
             bitset<3> func3;
             func3[0] = currentInstruction[12];
             func3[1] = currentInstruction[13];
@@ -265,49 +269,49 @@ class Decode
                 if (currentInstruction[30])
                 {
                     hs_de_ex.ALU_Operation = 1;
-                    cout << "Operation is SUB";
+                    cerr << "Operation is SUB";
                 }
                 else
                 {
                     hs_de_ex.ALU_Operation = 0;
-                    cout << "Operation is ADD";
+                    cerr << "Operation is ADD";
                 }
             }
             break;
             case 4:
                 hs_de_ex.ALU_Operation = 2;
-                cout << "Operation is XOR";
+                cerr << "Operation is XOR";
 
                 break;
             case 6:
                 hs_de_ex.ALU_Operation = 3;
-                cout << "Operation is OR";
+                cerr << "Operation is OR";
                 break;
             case 7:
                 hs_de_ex.ALU_Operation = 4;
-                cout << "Operation is AND";
+                cerr << "Operation is AND";
                 break;
             case 1: // 5:sll 6:srl 7:sra 8:slt
                 hs_de_ex.ALU_Operation = 5;
-                cout << "Operation is SLL";
+                cerr << "Operation is SLL";
                 break;
             case 5:
             {
                 if (currentInstruction[30])
                 {
                     hs_de_ex.ALU_Operation = 7;
-                    cout << "Operation is SRA";
+                    cerr << "Operation is SRA";
                 }
                 else
                 {
                     hs_de_ex.ALU_Operation = 6;
-                    cout << "Operation is SRL";
+                    cerr << "Operation is SRL";
                 }
             }
             break;
             case 2:
                 hs_de_ex.ALU_Operation = 8;
-                cout << "Operation is SLT";
+                cerr << "Operation is SLT";
                 break;
 
             default:
@@ -318,7 +322,7 @@ class Decode
             break;
             }
 
-            // cout<<"operation is"<<hs_de_ex.ALU_Operation;
+            // cerr<<"operation is"<<hs_de_ex.ALU_Operation;
 
             hs_de_ex.Result_select = 3;
             hs_de_ex.mem_OP = 0;
@@ -334,18 +338,18 @@ class Decode
                 rs2[i] = currentInstruction[i + 20];
                 rd[i] = currentInstruction[i + 7];
             }
-            cout << ", First Operand X" << rs1.to_ulong() << ", Second Operand X" << rs2.to_ulong() << ", Destination Registor X" << rd.to_ulong() << endl;
+            cerr << ", First Operand X" << rs1.to_ulong() << ", Second Operand X" << rs2.to_ulong() << ", Destination Registor X" << rd.to_ulong() << endl;
             hs_de_ex.Op1 = RF[rs1.to_ulong()]; // value of rs1
             hs_de_ex.Op2 = RF[rs2.to_ulong()]; // value of rs2
             hs_de_ex.Rd = rd.to_ulong();       // address of RD
-            cout << "DECODE: "
+            cerr << "DECODE: "
                  << "Read Register X" << rs1.to_ulong() << " = " << hs_de_ex.Op1 << ", X" << rs2.to_ulong() << " = " << hs_de_ex.Op2 << endl;
         }
         break;
 
         case 'I':
         {
-            cout << "DECODE: I type instruction\n";
+            cerr << "DECODE: I type instruction\n";
             bitset<3> func3;
             func3[0] = currentInstruction[12];
             func3[1] = currentInstruction[13];
@@ -353,51 +357,51 @@ class Decode
 
             if (currentInstruction[4]) // arithmatic operations
             {
-                cout << "Arithmetic Opereation\n";
+                cerr << "Arithmetic Opereation\n";
                 switch (func3.to_ulong()) // alu op:: 0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt
                 {
                 case 0:
                     hs_de_ex.ALU_Operation = 0;
-                    cout << "Operation is ADD";
+                    cerr << "Operation is ADD";
                     break;
                 case 4:
                     hs_de_ex.ALU_Operation = 2;
-                    cout << "Operation is XOR";
+                    cerr << "Operation is XOR";
                     break;
                 case 6:
                     hs_de_ex.ALU_Operation = 3;
-                    cout << "Operation is OR";
+                    cerr << "Operation is OR";
                     break;
                 case 7:
                     hs_de_ex.ALU_Operation = 4;
-                    cout << "Operation is AND";
+                    cerr << "Operation is AND";
                     break;
                 case 1:
                     hs_de_ex.ALU_Operation = 5;
-                    cout << "Operation is SLL";
+                    cerr << "Operation is SLL";
                     break;
                 case 5:
                 {
                     if (currentInstruction[30])
                     {
                         hs_de_ex.ALU_Operation = 7;
-                        cout << "Operation is SRA";
+                        cerr << "Operation is SRA";
                     }
                     else
                     {
                         hs_de_ex.ALU_Operation = 6;
-                        cout << "Operation is SRL";
+                        cerr << "Operation is SRL";
                     }
                 }
                 break;
                 case 2:
                     hs_de_ex.ALU_Operation = 8;
-                    cout << "Operation is SLT";
+                    cerr << "Operation is SLT";
                     break;
 
                 default:
                 {
-                    cout << "Invalid Instruction. Exiting...";
+                    cerr << "Invalid Instruction. Exiting...";
                     exit(0);
                 }
                 break;
@@ -409,7 +413,7 @@ class Decode
 
             else if (!currentInstruction[6]) // Load operation
             {
-                cout << "Load Opereation\n";
+                cerr << "Load Opereation\n";
                 hs_de_ex.ALU_Operation = 0; // add
                 hs_de_ex.Store_load_op = func3.to_ulong();
                 hs_de_ex.Result_select = 2; // load data
@@ -418,7 +422,7 @@ class Decode
             }
             else // jalr
             {
-                cout << "JALR Opereation\n";
+                cerr << "JALR Opereation\n";
                 hs_de_ex.ALU_Operation = 15; // jalr
                 hs_de_ex.Result_select = 0;  // PC+4
                 hs_de_ex.mem_OP = 0;         // no operation
@@ -455,16 +459,16 @@ class Decode
             hs_de_ex.Op1 = RF[rs1.to_ulong()];  // value of rs1
             hs_de_ex.Op2 = (int)imm.to_ulong(); // value of rs2
             hs_de_ex.Rd = rd.to_ulong();        // address of RD
-            cout << ", First Operand X" << rs1.to_ulong() << ", Second Operand imm"
+            cerr << ", First Operand X" << rs1.to_ulong() << ", Second Operand imm"
                  << ", Destination Registor X" << rd.to_ulong() << endl;
-            cout << "DECODE: "
+            cerr << "DECODE: "
                  << "Read Register X" << rs1.to_ulong() << " = " << hs_de_ex.Op1 << ", imm = " << hs_de_ex.Op2 << endl;
         }
         break;
 
         case 'S':
         {
-            cout << "S type instruction\n";
+            cerr << "S type instruction\n";
             bitset<3> func3;
             func3[0] = currentInstruction[12];
             func3[1] = currentInstruction[13];
@@ -509,14 +513,14 @@ class Decode
             hs_de_ex.Op1 = RF[rs1.to_ulong()];
             hs_de_ex.Op2 = (int)immS.to_ulong();
             hs_de_ex.Mem_Op2 = RF[rs2.to_ulong()];
-            cout << "First Operand X" << rs1.to_ulong() << ", Second Operand immS = " << immS.to_ulong() << endl;
-            cout << "DECODE: "
+            cerr << "First Operand X" << rs1.to_ulong() << ", Second Operand immS = " << immS.to_ulong() << endl;
+            cerr << "DECODE: "
                  << "Read Register X" << rs1.to_ulong() << " = " << hs_de_ex.Op1 << ", X" << rs2.to_ulong() << " = " << hs_de_ex.Mem_Op2 << endl;
         }
         break;
         case 'B':
         {
-            cout << "B type instruction\n";
+            cerr << "B type instruction\n";
             hs_de_ex.branch_target_select = 0; // immB
             hs_de_ex.RFWrite = 0;
             hs_de_ex.mem_OP = 0;
@@ -573,24 +577,24 @@ class Decode
             case 0:
             {
                 hs_de_ex.ALU_Operation = 9;
-                cout << "BEQ";
+                cerr << "BEQ";
             }
             break;
             case 1:
             {
-                cout << "BNE";
+                cerr << "BNE";
                 hs_de_ex.ALU_Operation = 10;
             }
             break;
             case 4:
             {
-                cout << "BLT";
+                cerr << "BLT";
                 hs_de_ex.ALU_Operation = 11;
             }
             break;
             case 5:
             {
-                cout << "BGE";
+                cerr << "BGE";
                 hs_de_ex.ALU_Operation = 12;
             }
             break;
@@ -602,15 +606,15 @@ class Decode
             }
             break;
             }
-            cout << "\nFirst Operand X" << rs1.to_ulong() << ", Second Operand X" << rs2.to_ulong() << endl;
-            cout << "DECODE: "
+            cerr << "\nFirst Operand X" << rs1.to_ulong() << ", Second Operand X" << rs2.to_ulong() << endl;
+            cerr << "DECODE: "
                  << "Read Register X" << rs1.to_ulong() << " = " << hs_de_ex.Op1 << ", X" << rs2.to_ulong() << " = " << hs_de_ex.Op2 << ", immB = " << immB.to_ulong() << endl;
         }
         break;
 
         case 'U':
         {
-            cout << "U type instruction\n";
+            cerr << "U type instruction\n";
 
             if (currentInstruction[5]) // lui
             {
@@ -639,10 +643,10 @@ class Decode
 
                 hs_de_ex.Rd = rd.to_ulong();
 
-                cout << "LUI\n";
-                cout << "DECODE: "
+                cerr << "LUI\n";
+                cerr << "DECODE: "
                      << "Destination Register X" << rd.to_ulong() << endl;
-                cout << "immU = " << immU.to_ulong() << endl;
+                cerr << "immU = " << immU.to_ulong() << endl;
             }
             else // auipc
             {
@@ -674,17 +678,17 @@ class Decode
                 hs_de_ex.RFWrite = 1;
                 hs_de_ex.Result_select = 1;
 
-                cout << "AUIPC\n";
-                cout << "DECODE: "
+                cerr << "AUIPC\n";
+                cerr << "DECODE: "
                      << "Destination Register X" << rd.to_ulong() << endl;
-                cout << "First Operand immU = " << immU.to_ulong() << ", Second Operand PC" << currentPCAdd.to_ulong() << endl;
+                cerr << "First Operand immU = " << immU.to_ulong() << ", Second Operand PC" << currentPCAdd.to_ulong() << endl;
             }
         }
         break;
 
         case 'J':
         {
-            cout << "J type instruction\n";
+            cerr << "J type instruction\n";
             bitset<21> temp(0);
 
             for (int i = 12; i < 20; i++)
@@ -713,7 +717,7 @@ class Decode
                 immJ[i] = temp[20];
             }
 
-            // cout<<"IMMj="<<ImmJ;
+            // cerr<<"IMMj="<<ImmJ;
 
             bitset<5> rd;
 
@@ -730,7 +734,7 @@ class Decode
             hs_de_ex.Result_select = 0;
             hs_de_ex.RFWrite = 1;
 
-            cout << "DECODE: "
+            cerr << "DECODE: "
                  << "Destination Register X" << rd.to_ulong() << ", immJ = " << immJ.to_ulong() << endl;
         }
         break;
@@ -743,7 +747,7 @@ class Decode
         break;
         }
 
-        cout << "\n### End Decode ###\n\n";
+        cerr << "\n### End Decode ###\n\n";
     }
 
 public:
@@ -782,63 +786,63 @@ class Execute
         int op1 = hs_de_ex.Op1;
         int op2 = hs_de_ex.Op2;
         int ALU_operation = hs_de_ex.ALU_Operation;
-        cout << "\n### Execute ###\n\n";
+        cerr << "\n### Execute ###\n\n";
 
         switch (ALU_operation)
         {
         case 0: // it will perform addition in ALU also will compute effective address for S and Load instruction
 
-            cout << "ALU performing addition operation" << endl;
-            cout << "Execute: ADD " << op1 << " and " << op2 << endl;
+            cerr << "ALU performing addition operation" << endl;
+            cerr << "Execute: ADD " << op1 << " and " << op2 << endl;
             hs_ex_ma.ALU_result = op1 + op2;
             hs_ex_ma.isBranch = 0;
             break;
         case 1: // it will perform subtraction in ALU
-            cout << "ALU performing subtraction operation" << endl;
-            cout << "Execute: SUB " << op1 << " and " << op2 << endl;
+            cerr << "ALU performing subtraction operation" << endl;
+            cerr << "Execute: SUB " << op1 << " and " << op2 << endl;
             hs_ex_ma.ALU_result = op1 - op2;
             hs_ex_ma.isBranch = 0;
             break;
         case 2: // it will perform logical XOR in ALU
-            cout << "ALU performing XOR operation" << endl;
-            cout << "Execute: XOR " << op1 << " and " << op2 << endl;
+            cerr << "ALU performing XOR operation" << endl;
+            cerr << "Execute: XOR " << op1 << " and " << op2 << endl;
             hs_ex_ma.ALU_result = op1 ^ op2;
             hs_ex_ma.isBranch = 0;
             break;
         case 3: // it will perform logical OR in ALU
-            cout << "ALU performing OR operation" << endl;
-            cout << "Execute: OR " << op1 << " and " << op2 << endl;
+            cerr << "ALU performing OR operation" << endl;
+            cerr << "Execute: OR " << op1 << " and " << op2 << endl;
             hs_ex_ma.ALU_result = op1 | op2;
             hs_ex_ma.isBranch = 0;
             break;
         case 4: // it will perform logical AND in ALU
-            cout << "ALU performing AND operation" << endl;
-            cout << "Execute: AND " << op1 << " and " << op2 << endl;
+            cerr << "ALU performing AND operation" << endl;
+            cerr << "Execute: AND " << op1 << " and " << op2 << endl;
             hs_ex_ma.ALU_result = op1 & op2;
             hs_ex_ma.isBranch = 0;
             break;
         case 5: // it will perform shift left logical in ALU
-            cout << "ALU performing logical left shift operation" << endl;
-            cout << "Execute: SLL " << op1 << " and " << op2 << endl;
+            cerr << "ALU performing logical left shift operation" << endl;
+            cerr << "Execute: SLL " << op1 << " and " << op2 << endl;
             hs_ex_ma.ALU_result = op1 << op2;
             hs_ex_ma.isBranch = 0;
             break;
         case 6: // it will perform shift right logical in ALU
             hs_ex_ma.ALU_result = srl(op1, op2);
-            cout << "ALU performing logical right shift operation" << endl;
-            cout << "Execute: SRL " << op1 << " and " << op2 << endl;
+            cerr << "ALU performing logical right shift operation" << endl;
+            cerr << "Execute: SRL " << op1 << " and " << op2 << endl;
             hs_ex_ma.isBranch = 0;
             break;
         case 7: // it will perform shift right arithmetic in ALU
-            cout << "ALU performing arithmetic right shift operation" << endl;
-            cout << "Execute: SRA " << op1 << " and " << op2 << endl;
+            cerr << "ALU performing arithmetic right shift operation" << endl;
+            cerr << "Execute: SRA " << op1 << " and " << op2 << endl;
             hs_ex_ma.ALU_result = op1 >> op2;
             hs_ex_ma.isBranch = 0;
             break;
 
         case 8: // it will perform set less than in ALU
-            cout << "ALU performing set less than operation" << endl;
-            cout << "Execute: SLT " << op1 << " and " << op2 << endl;
+            cerr << "ALU performing set less than operation" << endl;
+            cerr << "Execute: SLT " << op1 << " and " << op2 << endl;
             if (op1 < op2)
             {
                 hs_ex_ma.ALU_result = 1;
@@ -851,89 +855,89 @@ class Execute
             // for branching, we are assigning 0 for no branch, 1 for branch target adress, and 2 for ALU result, i.e for JALR
 
         case 9: // will check for beq
-            cout << "ALU checking for beq" << endl;
-            cout << "Execute: SUB " << op1 << " and " << op2 << endl;
+            cerr << "ALU checking for beq" << endl;
+            cerr << "Execute: SUB " << op1 << " and " << op2 << endl;
             hs_ex_ma.ALU_result = op1 - op2;
             if (hs_ex_ma.ALU_result == 0)
             {
                 hs_ex_ma.isBranch = 1;
-                cout << "Branching done" << endl;
-                cout << "immb=" << hs_de_ex.immB << endl;
+                cerr << "Branching done" << endl;
+                cerr << "immb=" << hs_de_ex.immB << endl;
                 nextPCAdd = hs_de_ex.immB + currentPCAdd.to_ulong(); // making pc=pc+immb
             }
             else
             {
                 hs_ex_ma.isBranch = 0;
-                cout << "No branching" << endl;
+                cerr << "No branching" << endl;
             }
             break;
 
         case 10: // will check for bne
-            cout << "Execute: SUB " << op1 << " and " << op2 << endl;
+            cerr << "Execute: SUB " << op1 << " and " << op2 << endl;
             hs_ex_ma.ALU_result = op1 - op2;
             if (hs_ex_ma.ALU_result == 0)
             {
                 hs_ex_ma.isBranch = 0;
-                cout << "No branching" << endl;
+                cerr << "No branching" << endl;
             }
             else
             {
                 hs_ex_ma.isBranch = 1;
-                cout << "Branching done" << endl;
+                cerr << "Branching done" << endl;
                 nextPCAdd = hs_de_ex.immB + currentPCAdd.to_ulong(); // making pc=pc+immb
             }
             break;
 
         case 11: // will check for blt
-            cout << "Execute: SUB " << op1 << " and " << op2 << endl;
+            cerr << "Execute: SUB " << op1 << " and " << op2 << endl;
             hs_ex_ma.ALU_result = op1 - op2;
             if (hs_ex_ma.ALU_result < 0)
             {
                 hs_ex_ma.isBranch = 1;
-                cout << "Branching done" << endl;
+                cerr << "Branching done" << endl;
                 nextPCAdd = hs_de_ex.immB + currentPCAdd.to_ulong(); // making pc=pc+imm
             }
             else
             {
                 hs_ex_ma.isBranch = 0;
-                cout << "No branching" << endl;
+                cerr << "No branching" << endl;
             }
             break;
 
         case 12: // will check for bge
-            cout << "Execute: SUB " << op1 << " and " << op2 << endl;
+            cerr << "Execute: SUB " << op1 << " and " << op2 << endl;
             hs_ex_ma.ALU_result = op1 - op2;
-            cout << "OP1:" << hs_de_ex.Op1;
-            cout << "OP2:" << hs_de_ex.Op2;
+            cerr << "OP1:" << hs_de_ex.Op1;
+            cerr << "OP2:" << hs_de_ex.Op2;
             if (hs_ex_ma.ALU_result >= 0)
             {
                 hs_ex_ma.isBranch = 1;
-                cout << "Branching done" << endl;
+                cerr << "Branching done" << endl;
                 nextPCAdd = hs_de_ex.immB + currentPCAdd.to_ulong(); // making pc=pc+immb
             }
             else
             {
                 hs_ex_ma.isBranch = 0;
-                cout << "No branching" << endl;
+                cerr << "No branching" << endl;
             }
             break;
 
         case 13: // lui
             hs_ex_ma.isBranch = 0;
-            cout << "Executin LUI " << endl;
+            cerr << "Executin LUI " << endl;
             break;
 
         case 14: // JAL
-            cout << "Executing JAL" << endl;
+            cerr << "Executing JAL" << endl;
             hs_ex_ma.isBranch = 1;
             nextPCAdd = currentPCAdd.to_ulong() + 4;
             nextPCAdd = hs_de_ex.immJ + currentPCAdd.to_ulong(); // making pc=pc+immj
-            // cout<<"jal worked :"<<nextPCAdd;
+            // cerr<<"jal worked :"<<nextPCAdd;
             break;
 
         case 15: // jalr
-            cout << "Executing JALR" << endl;
-            cout << "Execute: ADD " << op1 << " and " << op2 << endl;
+            cerr << "Executing JALR" << endl;
+            cerr << "Execute: ADD " << op1 << " and " << op2 << endl;
             hs_ex_ma.ALU_result = op1 + op2;
             hs_ex_ma.isBranch = 2;
             nextPCAdd = op1 + op2; // making pc=pc+immj
@@ -941,17 +945,17 @@ class Execute
             break;
 
         case 16: // auipc
-            cout << "Executing AUIPC" << endl;
+            cerr << "Executing AUIPC" << endl;
             hs_ex_ma.isBranch = 0;
             hs_de_ex.immU = currentPCAdd.to_ulong() + hs_de_ex.immU;
 
             break;
 
         default:
-            cout << "Some error has occured in decode!!";
+            cerr << "Some error has occured in decode!!";
         }
 
-        cout << "\n### End Execute ###\n\n";
+        cerr << "\n### End Execute ###\n\n";
     }
 
 public:
@@ -974,13 +978,13 @@ class Memory_Access
         int memop2 = hs_de_ex.Mem_Op2;
         int loaddata;
 
-        cout << "\n### Memory Access ###\n\n";
-        cout << "MEMORY: ";
+        cerr << "\n### Memory Access ###\n\n";
+        cerr << "MEMORY: ";
 
         switch (memop)
         {
         case 0: // no memory operation
-            cout << "Not a memory operation" << endl;
+            cerr << "Not a memory operation" << endl;
             break;
 
         case 1:
@@ -989,17 +993,17 @@ class Memory_Access
             {
             case 0:
                 *mem_add = memop2 & 255; // sb
-                cout << "Storing byte " << (memop2 & 255) << endl;
+                cerr << "Storing byte " << (memop2 & 255) << endl;
                 break;
 
             case 1:
                 *mem_add = memop2 & 65535; // sh
-                cout << "Storing half-word " << (memop2 & 65535) << endl;
+                cerr << "Storing half-word " << (memop2 & 65535) << endl;
                 break;
 
             case 2:
                 *mem_add = memop2; // sw
-                cout << "Storing word " << memop2 << endl;
+                cerr << "Storing word " << memop2 << endl;
                 break;
             }
         }
@@ -1012,18 +1016,18 @@ class Memory_Access
             case 0:
                 loaddata = *mem_add; // lb
                 loaddata = loaddata & 255;
-                cout << "Loading byte in register" << endl;
+                cerr << "Loading byte in register" << endl;
                 break;
 
             case 1:
                 loaddata = *mem_add; // lh
                 loaddata = loaddata & 65535;
-                cout << "Loading half-word in register" << endl;
+                cerr << "Loading half-word in register" << endl;
                 break;
 
             case 2:
                 loaddata = *mem_add; // lw
-                cout << "Loading word in register" << endl;
+                cerr << "Loading word in register" << endl;
                 break;
             }
             hs_ma_wb.loaded_mem = loaddata;
@@ -1031,7 +1035,7 @@ class Memory_Access
         break;
         }
 
-        cout << "\n### End Memmory Access ###\n\n";
+        cerr << "\n### End Memmory Access ###\n\n";
     }
 
 public:
@@ -1054,8 +1058,8 @@ class Write_Back
     void wb()
     {
 
-        cout << "\n### Write Back ###\n\n";
-        cout << "WRITEBACK: ";
+        cerr << "\n### Write Back ###\n\n";
+        cerr << "WRITEBACK: ";
         switch (isbranch)
         {
         case 0:
@@ -1064,7 +1068,7 @@ class Write_Back
             {
             case 0: // failed conditional branch
                 currentPCAdd = currentPCAdd.to_ulong() + 4;
-                cout << "No write-back required and current PC updated to PC+4" << endl;
+                cerr << "No write-back required and current PC updated to PC+4" << endl;
                 break;
 
             case 1: // write data in rf
@@ -1086,9 +1090,9 @@ class Write_Back
                     RF[rd] = aluresult;
                     break;
                 }
-                cout << "Write " << RF[rd] << " to register " << rd << endl;
+                cerr << "Write " << RF[rd] << " to register " << rd << endl;
                 currentPCAdd = currentPCAdd.to_ulong() + 4;
-                cout << "Current PC updated to PC+4" << endl;
+                cerr << "Current PC updated to PC+4" << endl;
                 break;
             }
         }
@@ -1099,7 +1103,7 @@ class Write_Back
             {
             case 0: // conditional branch
                 currentPCAdd = nextPCAdd.to_ulong();
-                cout << "Condtional branch"
+                cerr << "Condtional branch"
                      << ", current PC = " << currentPCAdd << endl;
 
                 break;
@@ -1107,8 +1111,8 @@ class Write_Back
             case 1: // jal
                 RF[rd] = currentPCAdd.to_ulong() + 4;
                 currentPCAdd = nextPCAdd.to_ulong();
-                cout << "Write " << RF[rd] << " to register " << rd << endl;
-                cout << "Current PC address updated to: " << currentPCAdd;
+                cerr << "Write " << RF[rd] << " to register " << rd << endl;
+                cerr << "Current PC address updated to: " << currentPCAdd;
                 break;
             }
             break;
@@ -1116,13 +1120,13 @@ class Write_Back
         case 2: // jalr
             RF[rd] = currentPCAdd.to_ulong() + 4;
             currentPCAdd = aluresult;
-            cout << "Write " << RF[rd] << " to register " << rd << endl;
-            cout << "Current PC address updated to: " << currentPCAdd;
+            cerr << "Write " << RF[rd] << " to register " << rd << endl;
+            cerr << "Current PC address updated to: " << currentPCAdd;
             break;
         }
         RF[0] = 0; // x0 is always 0;
 
-        cout << "\n### End Write Back ###\n\n";
+        cerr << "\n### End Write Back ###\n\n";
     }
 
 public:
@@ -1143,6 +1147,7 @@ void RISCv_Processor()
         Memory_Access d;
         Write_Back e;
         Clock++;
+        
     }
 }
 
@@ -1150,5 +1155,7 @@ int main()
 {
     make_file();
     RISCv_Processor();
+   
     return 0;
+
 }
