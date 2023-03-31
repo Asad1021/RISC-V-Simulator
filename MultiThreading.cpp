@@ -1,7 +1,8 @@
-#include<iostream>
+// #include<iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include "pthreadOSX.h"
 using namespace std;
 #define NUM_THREADS 5
 
@@ -24,7 +25,7 @@ void *fetch(void *arg) {
     pthread_mutex_unlock(&mutex);
     
     pthread_barrier_wait(&barrier);
-    cout<<"Now barrier is ended num is: "<<thread_num;
+    // cout<<"Now barrier is ended num is: "<<thread_num;
 
     pthread_exit(NULL);
 }
@@ -43,7 +44,7 @@ void *decode(void *arg) {
     pthread_mutex_unlock(&mutex);
     
     pthread_barrier_wait(&barrier);
-    cout<<"Now barrier is ended num is: "<<thread_num;
+    // cout<<"Now barrier is ended num is: "<<thread_num;
 
 
     pthread_exit(NULL);
@@ -62,7 +63,7 @@ void *execute(void *arg) {
     // Unlock the mutex before exiting the thread
     pthread_mutex_unlock(&mutex);
     pthread_barrier_wait(&barrier);
-    cout<<"Now barrier is ended num is: "<<thread_num;
+    // cout<<"Now barrier is ended num is: "<<thread_num;
 
     pthread_exit(NULL);
 }
@@ -80,7 +81,7 @@ void *memory(void *arg) {
     // Unlock the mutex before exiting the thread
     pthread_mutex_unlock(&mutex);
     pthread_barrier_wait(&barrier);
-    cout<<"Now barrier is ended num is: "<<thread_num;
+    // cout<<"Now barrier is ended num is: "<<thread_num;
 
     pthread_exit(NULL);
 }
@@ -98,7 +99,7 @@ void *writeback(void *arg) {
     // Unlock the mutex before exiting the thread
     pthread_mutex_unlock(&mutex);
     pthread_barrier_wait(&barrier);
-    cout<<"Now barrier is ended num is: "<<thread_num;
+    // cout<<"Now barrier is ended num is: "<<thread_num;
 
     pthread_exit(NULL);
 }
