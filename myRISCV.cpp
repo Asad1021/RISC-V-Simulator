@@ -209,8 +209,8 @@ public:
     Fetch(int flag = 0)
     {
         cout << "\n### Fetch ###\n\n";
-        currentInstruction = fetch_instruction(flag);
-        cout << "FETCH:Fetch instruction " << currentInstruction << " From address " << currentPCAdd << endl;
+        currentInstruction_Copy = fetch_instruction(flag);
+        cout << "FETCH:Fetch instruction " << currentInstruction_Copy << " From address " << currentPCAdd << endl;
         cout << "\n### End Fetch ###\n\n";
     }
 };
@@ -1033,9 +1033,6 @@ class Execute
         ex_ma_Copy.Store_load_op=de_ex_mainPipeline.Store_load_op;
         ex_ma_Copy.Mem_Op2=de_ex_mainPipeline.Mem_Op2;
         cout << "\n### End Execute ###\n\n";
-
-
-
     }
 
 public:
@@ -1049,13 +1046,14 @@ class Memory_Access
 {
     void memory_access()
     {
-        int memop = hs_de_ex.mem_OP;
+        int memop = ex_ma_mainPipeline.mem_OP;
 
-        int aluresult = hs_ex_ma.ALU_result;
+        int aluresult = ex_ma_mainPipeline.ALU_result;
+        
         int *mem_add = (int *)(memory_arr + aluresult);
 
-        int storeloadop = hs_de_ex.Store_load_op;
-        int memop2 = hs_de_ex.Mem_Op2;
+        int storeloadop = ex_ma_mainPipeline.Store_load_op;
+        int memop2 = ex_ma_mainPipeline.Mem_Op2;
         int loaddata;
 
         cout << "\n### Memory Access ###\n\n";
@@ -1138,14 +1136,17 @@ public:
 
 class Write_Back
 {
-    int resultselect = hs_de_ex.Result_select;
-    int rfwrite = hs_de_ex.RFWrite;
-    int isbranch = hs_ex_ma.isBranch;
-    int rd = hs_de_ex.Rd;
-    int aluresult = hs_ex_ma.ALU_result;
+    
+    int resultselect = ma_wb_mainPipeline.Result_select;
+    int rfwrite = ma_wb_mainPipeline.RFWrite;
+    int isbranch = ma_wb_mainPipeline.isBranch;
+    int rd = ma_wb_mainPipeline.Rd;
+    int aluresult = ma_wb_mainPipeline.ALU_result;
+
     int pc_plus_4 = currentPCAdd.to_ulong() + 4;
-    int loadeddata = hs_ma_wb.loaded_mem;
-    int immu = hs_de_ex.immU;
+
+    int loadeddata = ma_wb_mainPipeline.loaded_mem;
+    int immu = ma_wb_mainPipeline.immU;
     void wb()
     {
 
