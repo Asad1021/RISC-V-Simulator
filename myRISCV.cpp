@@ -1105,7 +1105,18 @@ class Memory_Access
         }
 
         cout << "\n### End Memmory Access ###\n\n";
+        
+        ma_wb_Copy.loaded_mem = hs_ma_wb.loaded_mem; // dont care
+        ma_wb_Copy.Rd = hs_de_ex.Rd;   // RF write destinstion
+        ma_wb_Copy.immU = hs_de_ex.immU; // dont care
+                // intmama_wb_mainPipelinech_target_select=0; // 0 for immB; 1 for immJ
+        ma_wb_Copy.Result_select = hs_de_ex.Result_select;                          // 3: ALU result
+        ma_wb_Copy.RFWrite = hs_de_ex.RFWrite;                                // 1:for write operation
+        ma_wb_Copy.PC_plus_four = currentPCAdd.to_ulong() + 4; // #################this will not be the case#######################
+        ma_wb_Copy.ALU_result = aluresult ;                             // will store the result of the alu
+        ma_wb_Copy.isBranch = hs_ex_ma.isBranch;
     }
+    
 
 public:
     Memory_Access()
