@@ -24,10 +24,10 @@ ifstream readFile("input.mc");
 bitset<32> currentPCAdd(0);
 bitset<32> nextPCAdd(0);
 bitset<32> currentInstruction;
+bitset<32> currentInstruction_Copy;
 // if this instruction is read then program exits
 bitset<32> exitInstruction(0xffffffff);
 // stores the pc + 4
-bitset<32> pc_plus_four;
 #pragma endregion INSTRUCTION_RELATED_DATA
 
 #pragma region DECODE_RELATED_DATA
@@ -72,7 +72,6 @@ typedef struct ex_ma_handshake
     // handshake register between execute and memory access
     int ALU_result;   // 0:add 1:sub 2:XOR 3:OR 4:AND 5:sll 6:srl 7:sra 8:slt
     int isBranch;     // will tell whether to branch or not
-    int PC_plus_four; // PC + 4
     // branch target address
 } EX_MA;
 EX_MA hs_ex_ma;
@@ -81,7 +80,6 @@ typedef struct ex_ma_pipeline
 {
     int ALU_result;   // will store the result of the alu
     int isBranch;     // will tell whether to branch or not
-    int PC_plus_four; // PC + 4
 
     int Rd;                   // RF write destinstion
     int immU;                 // to be written in the rd
@@ -115,7 +113,6 @@ typedef struct ma_wb_pipeline
     // int branch_target_select; // 0 for immB; 1 for immJ
     int Result_select; // 0:PC+4 ; 1:ImmU; 2:Load data; 3: ALU result
     int RFWrite;       // 0: no write operation 1:for write operation
-    int PC_plus_four;
     int ALU_result; // will store the result of the alu
     int isBranch;   // will tell whether to branch or not
 } ma_wb_pipe;
@@ -233,7 +230,7 @@ void make_file()
     outfile.open("input.mc");
     if (!infile)
     {
-        cerr << "Error: Could not open input file.\n";
+        cout << "Error: Could not open input file.\n";
         exit(0);
     }
 
@@ -371,7 +368,7 @@ class Decode
 
             default:
             {
-                cerr << "Invalid Instruction\nEXITING...";
+                cout << "Invalid Instruction\nEXITING...";
                 exit(0);
             }
             break;
@@ -656,7 +653,7 @@ class Decode
 
             default:
             {
-                cerr << "Error: Could not identify instruction.\n";
+                cout << "Error: Could not identify instruction.\n";
                 exit(0);
             }
             break;
@@ -796,7 +793,7 @@ class Decode
 
         default:
         {
-            cerr << "Error: Could not identify instruction.\n";
+            cout << "Error: Could not identify instruction.\n";
             exit(0);
         }
         break;
@@ -1251,7 +1248,6 @@ void RISCv_Processor()
             //copy here to the main pipe line
             {
                 ex_ma_mainPipeline.isBranch = ex_ma_Copy.isBranch;                               // will tell whether to branch or not
-                ex_ma_mainPipeline.PC_plus_four = currentPCAdd.to_ulong() + 4; // PC + 4//############this will not be the case#######################
                 ex_ma_mainPipeline.ALU_result =  ex_ma_Copy.ALU_result;                             // will store the result of the alu
 
                 ex_ma_mainPipeline.Rd = ex_ma_Copy.Rd;                   // RF write destinstion
@@ -1273,7 +1269,6 @@ void RISCv_Processor()
                 // intmama_wb_mainPipelinech_target_select=0; // 0 for immB; 1 for immJ
                 ma_wb_mainPipeline.Result_select = ma_wb_Copy.Result_select;                          // 3: ALU result
                 ma_wb_mainPipeline.RFWrite = ma_wb_Copy.RFWrite;                                // 1:for write operation
-                ma_wb_mainPipeline.PC_plus_four = currentPCAdd.to_ulong() + 4; // #################this will not be the case#######################
                 ma_wb_mainPipeline.ALU_result = ma_wb_Copy.ALU_result ;                             // will store the result of the alu
                 ma_wb_mainPipeline.isBranch = ma_wb_Copy.isBranch;    
             }
@@ -1305,7 +1300,6 @@ void init_NoOps()
 
     {                                                           // here is the NoOp(add x0 x0 x0) instructiion for ex_ma stage pipeline
         ex_ma_No_Op.isBranch = 0;                               // will tell whether to branch or not
-        ex_ma_No_Op.PC_plus_four = currentPCAdd.to_ulong() + 4; // PC + 4//############this will not be the case#######################
         ex_ma_No_Op.ALU_result = 0;                             // will store the result of the alu
 
         ex_ma_No_Op.Rd = 0;                   // RF write destinstion
@@ -1326,7 +1320,6 @@ void init_NoOps()
         // int branch_target_select=0; // 0 for immB; 1 for immJ
         ma_wb_No_Op.Result_select = 3;                          // 3: ALU result
         ma_wb_No_Op.RFWrite = 1;                                // 1:for write operation
-        ma_wb_No_Op.PC_plus_four = currentPCAdd.to_ulong() + 4; // #################this will not be the case#######################
         ma_wb_No_Op.ALU_result = 0;                             // will store the result of the alu
         ma_wb_No_Op.isBranch = 0;                               // will tell whether to branch or not
     }
