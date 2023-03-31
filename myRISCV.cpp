@@ -64,9 +64,8 @@ typedef struct de_ex_pipeline
 de_ex_pipe de_ex_mainPipeline, de_ex_Copy, de_ex_No_Op;
 
 int RF[32]; // Register file
-#pragma endregion DECODE_RELATED_DATA
 
-#pragma region EXECUTE_RELATED_DATA
+
 typedef struct ex_ma_handshake
 {
     // handshake register between execute and memory access
@@ -852,9 +851,9 @@ class Execute
 
     void execute_inst()
     {
-        int op1 = hs_de_ex.Op1;
-        int op2 = hs_de_ex.Op2;
-        int ALU_operation = hs_de_ex.ALU_Operation;
+        int op1 = de_ex_mainPipeline.Op1;
+        int op2 = de_ex_mainPipeline.Op2;
+        int ALU_operation = de_ex_mainPipeline.ALU_Operation;
         cout << "\n### Execute ###\n\n";
 
         switch (ALU_operation)
@@ -863,50 +862,50 @@ class Execute
 
             cout << "ALU performing addition operation" << endl;
             cout << "Execute: ADD " << op1 << " and " << op2 << endl;
-            hs_ex_ma.ALU_result = op1 + op2;
-            hs_ex_ma.isBranch = 0;
+            ex_ma_Copy.ALU_result = op1 + op2;
+            ex_ma_Copy.isBranch = 0;
             break;
         case 1: // it will perform subtraction in ALU
             cout << "ALU performing subtraction operation" << endl;
             cout << "Execute: SUB " << op1 << " and " << op2 << endl;
-            hs_ex_ma.ALU_result = op1 - op2;
-            hs_ex_ma.isBranch = 0;
+            ex_ma_Copy.ALU_result = op1 - op2;
+            ex_ma_Copy.isBranch = 0;
             break;
         case 2: // it will perform logical XOR in ALU
             cout << "ALU performing XOR operation" << endl;
             cout << "Execute: XOR " << op1 << " and " << op2 << endl;
-            hs_ex_ma.ALU_result = op1 ^ op2;
-            hs_ex_ma.isBranch = 0;
+            ex_ma_Copy.ALU_result = op1 ^ op2;
+            ex_ma_Copy.isBranch = 0;
             break;
         case 3: // it will perform logical OR in ALU
             cout << "ALU performing OR operation" << endl;
             cout << "Execute: OR " << op1 << " and " << op2 << endl;
-            hs_ex_ma.ALU_result = op1 | op2;
-            hs_ex_ma.isBranch = 0;
+            ex_ma_Copy.ALU_result = op1 | op2;
+            ex_ma_Copy.isBranch = 0;
             break;
         case 4: // it will perform logical AND in ALU
             cout << "ALU performing AND operation" << endl;
             cout << "Execute: AND " << op1 << " and " << op2 << endl;
-            hs_ex_ma.ALU_result = op1 & op2;
-            hs_ex_ma.isBranch = 0;
+            ex_ma_Copy.ALU_result = op1 & op2;
+            ex_ma_Copy.isBranch = 0;
             break;
         case 5: // it will perform shift left logical in ALU
             cout << "ALU performing logical left shift operation" << endl;
             cout << "Execute: SLL " << op1 << " and " << op2 << endl;
-            hs_ex_ma.ALU_result = op1 << op2;
-            hs_ex_ma.isBranch = 0;
+            ex_ma_Copy.ALU_result = op1 << op2;
+            ex_ma_Copy.isBranch = 0;
             break;
         case 6: // it will perform shift right logical in ALU
-            hs_ex_ma.ALU_result = srl(op1, op2);
+            ex_ma_Copy.ALU_result = srl(op1, op2);
             cout << "ALU performing logical right shift operation" << endl;
             cout << "Execute: SRL " << op1 << " and " << op2 << endl;
-            hs_ex_ma.isBranch = 0;
+            ex_ma_Copy.isBranch = 0;
             break;
         case 7: // it will perform shift right arithmetic in ALU
             cout << "ALU performing arithmetic right shift operation" << endl;
             cout << "Execute: SRA " << op1 << " and " << op2 << endl;
-            hs_ex_ma.ALU_result = op1 >> op2;
-            hs_ex_ma.isBranch = 0;
+            ex_ma_Copy.ALU_result = op1 >> op2;
+            ex_ma_Copy.isBranch = 0;
             break;
 
         case 8: // it will perform set less than in ALU
@@ -914,109 +913,109 @@ class Execute
             cout << "Execute: SLT " << op1 << " and " << op2 << endl;
             if (op1 < op2)
             {
-                hs_ex_ma.ALU_result = 1;
+                ex_ma_Copy.ALU_result = 1;
             }
             else
-                hs_ex_ma.ALU_result = 0;
+                ex_ma_Copy.ALU_result = 0;
 
-            hs_ex_ma.isBranch = 0;
+            ex_ma_Copy.isBranch = 0;
             break;
             // for branching, we are assigning 0 for no branch, 1 for branch target adress, and 2 for ALU result, i.e for JALR
 
         case 9: // will check for beq
             cout << "ALU checking for beq" << endl;
             cout << "Execute: SUB " << op1 << " and " << op2 << endl;
-            hs_ex_ma.ALU_result = op1 - op2;
-            if (hs_ex_ma.ALU_result == 0)
+            ex_ma_Copy.ALU_result = op1 - op2;
+            if (ex_ma_Copy.ALU_result == 0)
             {
-                hs_ex_ma.isBranch = 1;
+                ex_ma_Copy.isBranch = 1;
                 cout << "Branching done" << endl;
                 cout << "immb=" << hs_de_ex.immB << endl;
-                nextPCAdd = hs_de_ex.immB + currentPCAdd.to_ulong(); // making pc=pc+immb
+                nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong(); // making pc=pc+immb
             }
             else
             {
-                hs_ex_ma.isBranch = 0;
+                ex_ma_Copy.isBranch = 0;
                 cout << "No branching" << endl;
             }
             break;
 
         case 10: // will check for bne
             cout << "Execute: SUB " << op1 << " and " << op2 << endl;
-            hs_ex_ma.ALU_result = op1 - op2;
-            if (hs_ex_ma.ALU_result == 0)
+            ex_ma_Copy.ALU_result = op1 - op2;
+            if (ex_ma_Copy.ALU_result == 0)
             {
-                hs_ex_ma.isBranch = 0;
+                ex_ma_Copy.isBranch = 0;
                 cout << "No branching" << endl;
             }
             else
             {
-                hs_ex_ma.isBranch = 1;
+                ex_ma_Copy.isBranch = 1;
                 cout << "Branching done" << endl;
-                nextPCAdd = hs_de_ex.immB + currentPCAdd.to_ulong(); // making pc=pc+immb
+                nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong(); // making pc=pc+immb
             }
             break;
 
         case 11: // will check for blt
             cout << "Execute: SUB " << op1 << " and " << op2 << endl;
-            hs_ex_ma.ALU_result = op1 - op2;
-            if (hs_ex_ma.ALU_result < 0)
+            ex_ma_Copy.ALU_result = op1 - op2;
+            if (ex_ma_Copy.ALU_result < 0)
             {
-                hs_ex_ma.isBranch = 1;
+                ex_ma_Copy.isBranch = 1;
                 cout << "Branching done" << endl;
-                nextPCAdd = hs_de_ex.immB + currentPCAdd.to_ulong(); // making pc=pc+imm
+                nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong(); // making pc=pc+imm
             }
             else
             {
-                hs_ex_ma.isBranch = 0;
+                ex_ma_Copy.isBranch = 0;
                 cout << "No branching" << endl;
             }
             break;
 
         case 12: // will check for bge
             cout << "Execute: SUB " << op1 << " and " << op2 << endl;
-            hs_ex_ma.ALU_result = op1 - op2;
-            cout << "OP1:" << hs_de_ex.Op1;
-            cout << "OP2:" << hs_de_ex.Op2;
-            if (hs_ex_ma.ALU_result >= 0)
+            ex_ma_Copy.ALU_result = op1 - op2;
+            cout << "OP1:" << de_ex_mainPipeline.Op1;
+            cout << "OP2:" << de_ex_mainPipeline.Op2;
+            if (ex_ma_Copy.ALU_result >= 0)
             {
-                hs_ex_ma.isBranch = 1;
+                ex_ma_Copy.isBranch = 1;
                 cout << "Branching done" << endl;
-                nextPCAdd = hs_de_ex.immB + currentPCAdd.to_ulong(); // making pc=pc+immb
+                nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong(); // making pc=pc+immb
             }
             else
             {
-                hs_ex_ma.isBranch = 0;
+                ex_ma_Copy.isBranch = 0;
                 cout << "No branching" << endl;
             }
             break;
 
         case 13: // lui
-            hs_ex_ma.isBranch = 0;
+            ex_ma_Copy.isBranch = 0;
             cout << "Executin LUI " << endl;
             break;
 
         case 14: // JAL
             cout << "Executing JAL" << endl;
-            hs_ex_ma.isBranch = 1;
+            ex_ma_Copy.isBranch = 1;
             nextPCAdd = currentPCAdd.to_ulong() + 4;
-            nextPCAdd = hs_de_ex.immJ + currentPCAdd.to_ulong(); // making pc=pc+immj
+            nextPCAdd = de_ex_mainPipeline.immJ + currentPCAdd.to_ulong(); // making pc=pc+immj
             // cout<<"jal worked :"<<nextPCAdd;
             break;
 
         case 15: // jalr
             cout << "Executing JALR" << endl;
             cout << "Execute: ADD " << op1 << " and " << op2 << endl;
-            hs_ex_ma.ALU_result = op1 + op2;
-            hs_ex_ma.isBranch = 2;
+            ex_ma_Copy.ALU_result = op1 + op2;
+            ex_ma_Copy.isBranch = 2;
             nextPCAdd = op1 + op2; // making pc=pc+immj
             // must give rd in jalr for xi=pc+4
             break;
 
         case 16: // auipc
             cout << "Executing AUIPC" << endl;
-            hs_ex_ma.isBranch = 0;
-            hs_de_ex.immU = currentPCAdd.to_ulong() + hs_de_ex.immU;
+            ex_ma_Copy.isBranch = 0;
+            de_ex_mainPipeline.immU = currentPCAdd.to_ulong() + de_ex_mainPipeline.immU;
 
             break;
 
@@ -1024,7 +1023,18 @@ class Execute
             cout << "Some error has occured in decode!!";
         }
 
+        ex_ma_Copy.branch_target_select=de_ex_mainPipeline.branch_target_select;
+        ex_ma_Copy.immU=de_ex_mainPipeline.immU;
+        ex_ma_Copy.Rd=de_ex_mainPipeline.Rd;
+        ex_ma_Copy.Result_select=de_ex_mainPipeline.Result_select;
+        ex_ma_Copy.mem_OP=de_ex_mainPipeline.mem_OP;
+        ex_ma_Copy.RFWrite=de_ex_mainPipeline.RFWrite;
+        ex_ma_Copy.Store_load_op=de_ex_mainPipeline.Store_load_op;
+        ex_ma_Copy.Mem_Op2=de_ex_mainPipeline.Mem_Op2;
         cout << "\n### End Execute ###\n\n";
+
+
+
     }
 
 public:
