@@ -855,6 +855,7 @@ class Execute
         int op2 = de_ex_mainPipeline.Op2;
         int ALU_operation = de_ex_mainPipeline.ALU_Operation;
         cout << "\n### Execute ###\n\n";
+        
 
         switch (ALU_operation)
         {
@@ -930,7 +931,7 @@ class Execute
             {
                 ex_ma_Copy.isBranch = 1;
                 cout << "Branching done" << endl;
-                cout << "immb=" << hs_de_ex.immB << endl;
+                cout << "immb=" << de_ex_mainPipeline.immB << endl;
                 nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong(); // making pc=pc+immb
             }
             else
