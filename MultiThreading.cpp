@@ -1,7 +1,8 @@
+#include<iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
-
+using namespace std;
 #define NUM_THREADS 5
 
 int shared_resource = 0;
@@ -23,6 +24,7 @@ void *fetch(void *arg) {
     pthread_mutex_unlock(&mutex);
     
     pthread_barrier_wait(&barrier);
+    cout<<"Now barrier is ended num is: "<<thread_num;
 
     pthread_exit(NULL);
 }
@@ -41,6 +43,7 @@ void *decode(void *arg) {
     pthread_mutex_unlock(&mutex);
     
     pthread_barrier_wait(&barrier);
+    cout<<"Now barrier is ended num is: "<<thread_num;
 
 
     pthread_exit(NULL);
@@ -59,6 +62,7 @@ void *execute(void *arg) {
     // Unlock the mutex before exiting the thread
     pthread_mutex_unlock(&mutex);
     pthread_barrier_wait(&barrier);
+    cout<<"Now barrier is ended num is: "<<thread_num;
 
     pthread_exit(NULL);
 }
@@ -76,6 +80,7 @@ void *memory(void *arg) {
     // Unlock the mutex before exiting the thread
     pthread_mutex_unlock(&mutex);
     pthread_barrier_wait(&barrier);
+    cout<<"Now barrier is ended num is: "<<thread_num;
 
     pthread_exit(NULL);
 }
@@ -93,6 +98,7 @@ void *writeback(void *arg) {
     // Unlock the mutex before exiting the thread
     pthread_mutex_unlock(&mutex);
     pthread_barrier_wait(&barrier);
+    cout<<"Now barrier is ended num is: "<<thread_num;
 
     pthread_exit(NULL);
 }
@@ -100,6 +106,7 @@ void *writeback(void *arg) {
 int main() {
     pthread_t threads[NUM_THREADS];
     int thread_nums[NUM_THREADS] = {1,2,3,4,5};
+    pthread_barrier_init(&barrier,NULL,NUM_THREADS);
 
     // Create threads for each function
     // for (int i = 0; i < NUM_THREADS; i++) {
@@ -117,6 +124,7 @@ int main() {
     for (int i = 0; i < NUM_THREADS; i++) {
         pthread_join(threads[i], NULL);
     }
+    pthread_barrier_destroy(&barrier);
 
     return 0;
 }
