@@ -5,6 +5,8 @@
 #include <string>
 #include <cstdlib>
 
+//################# remember to update mem.Oprands
+
 #define MEMORY_SIZE 120000
 // immb conversion is always a unsigned operation hence we have to convert it to signed one by using typecast
 // immB+PC; immB=immb.to_ulong();//unsigned
@@ -12,6 +14,7 @@
 using namespace std;
 
 int Clock = 0; // this will store the No. of Clock cycle used for a program
+bool HaltIf=false,HaltDE=false;
 
 #pragma region FILE_RELATED_DATA
 void printRF();
@@ -25,8 +28,11 @@ bitset<32> currentPCAdd(0);
 bitset<32> nextPCAdd(0);
 bitset<32> currentInstruction;
 bitset<32> currentInstruction_Copy;
+
+bool HaltIF;
 // if this instruction is read then program exits
 bitset<32> exitInstruction(0xffffffff);
+
 // stores the pc + 4
 #pragma endregion INSTRUCTION_RELATED_DATA
 
@@ -50,6 +56,7 @@ typedef struct de_ex_pipeline
 {
     int Op1, Op2; // oprands
     int Rd;       // RF write destinstion
+    int Rs1,Rs2;
     int imm, immU, immS, immJ, immB;
     int branch_target_select; // 0 for immB; 1 for immJ
     int Result_select;        // 0:PC+4 ; 1:ImmU; 2:Load data; 3: ALU result
@@ -64,6 +71,7 @@ typedef struct de_ex_pipeline
 de_ex_pipe de_ex_mainPipeline, de_ex_Copy, de_ex_No_Op;
 
 int RF[32]; // Register file
+bool HaltDE;
 
 
 typedef struct ex_ma_handshake
@@ -208,10 +216,14 @@ class Fetch
 public:
     Fetch(int flag = 0)
     {
-        cout << "\n### Fetch ###\n\n";
-        currentInstruction_Copy = fetch_instruction(flag);
-        cout << "FETCH:Fetch instruction " << currentInstruction_Copy << " From address " << currentPCAdd << endl;
-        cout << "\n### End Fetch ###\n\n";
+        if(!HaltIF)
+        {
+            cout << "\n### Fetch ###\n\n";
+            currentInstruction_Copy = fetch_instruction(flag);
+            cout << "FETCH:Fetch instruction " << currentInstruction_Copy << " From address " << currentPCAdd << endl;
+            cout << "\n### End Fetch ###\n\n";
+        }
+        else HaltIF=false;//resetting the flag so that next time this will execute asusual
     }
 };
 // makes .mc file
@@ -392,6 +404,10 @@ class Decode
             cout << ", First Operand X" << rs1.to_ulong() << ", Second Operand X" << rs2.to_ulong() << ", Destination Registor X" << rd.to_ulong() << endl;
             hs_de_ex.Op1 = RF[rs1.to_ulong()]; // value of rs1
             hs_de_ex.Op2 = RF[rs2.to_ulong()]; // value of rs2
+
+            de_ex_Copy.Rs1 = rs1.to_ulong();
+            de_ex_Copy.Rs2 = rs2.to_ulong();
+
             hs_de_ex.Rd = rd.to_ulong();       // address of RD
             cout << "DECODE: "
                  << "Read Register X" << rs1.to_ulong() << " = " << hs_de_ex.Op1 << ", X" << rs2.to_ulong() << " = " << hs_de_ex.Op2 << endl;
@@ -510,6 +526,11 @@ class Decode
             hs_de_ex.Op1 = RF[rs1.to_ulong()];  // value of rs1
             hs_de_ex.Op2 = (int)imm.to_ulong(); // value of rs2
             hs_de_ex.Rd = rd.to_ulong();        // address of RD
+
+            de_ex_Copy.Rs1 = rs1.to_ulong();
+            de_ex_Copy.Rs2 = -1;
+
+
             cout << ", First Operand X" << rs1.to_ulong() << ", Second Operand imm"
                  << ", Destination Registor X" << rd.to_ulong() << endl;
             cout << "DECODE: "
@@ -564,6 +585,11 @@ class Decode
             hs_de_ex.Op1 = RF[rs1.to_ulong()];
             hs_de_ex.Op2 = (int)immS.to_ulong();
             hs_de_ex.Mem_Op2 = RF[rs2.to_ulong()];
+
+            de_ex_Copy.Rs1 = rs1.to_ulong();
+            de_ex_Copy.Rs2 = rs2.to_ulong();
+
+
             cout << "First Operand X" << rs1.to_ulong() << ", Second Operand immS = " << immS.to_ulong() << endl;
             cout << "DECODE: "
                  << "Read Register X" << rs1.to_ulong() << " = " << hs_de_ex.Op1 << ", X" << rs2.to_ulong() << " = " << hs_de_ex.Mem_Op2 << endl;
@@ -587,6 +613,10 @@ class Decode
 
             hs_de_ex.Op1 = RF[rs1.to_ulong()];
             hs_de_ex.Op2 = RF[rs2.to_ulong()];
+
+            de_ex_Copy.Rs1 = rs1.to_ulong();
+            de_ex_Copy.Rs2 = rs2.to_ulong();
+
 
             bitset<13> temp;
 
@@ -729,6 +759,10 @@ class Decode
                 hs_de_ex.RFWrite = 1;
                 hs_de_ex.Result_select = 1;
 
+                de_ex_Copy.Rs1 = -1;
+                de_ex_Copy.Rs2 = -1;
+
+
                 cout << "AUIPC\n";
                 cout << "DECODE: "
                      << "Destination Register X" << rd.to_ulong() << endl;
@@ -785,6 +819,9 @@ class Decode
             hs_de_ex.Result_select = 0;
             hs_de_ex.RFWrite = 1;
 
+            de_ex_Copy.Rs1 = -1;
+            de_ex_Copy.Rs2 = -1;
+
             cout << "DECODE: "
                  << "Destination Register X" << rd.to_ulong() << ", immJ = " << immJ.to_ulong() << endl;
         }
@@ -821,13 +858,11 @@ class Decode
 public:
     Decode()
     {
-        Decode_Instruction();
+        if(!HaltDE)
+            Decode_Instruction();
+        else HaltDE =false;        
     }
 };
-
-void reset_pointer()
-{
-}
 
 class Execute
 {
@@ -1228,6 +1263,57 @@ public:
     }
 };
 
+void resolveHazards(){
+    bool DataHazard,//true if there is data hazard
+         ControlHazard;//true if there is control hazard
+
+    int Rs1DeEx = de_ex_Copy.Rs1;
+    int Rs2DeEx = de_ex_Copy.Rs2;
+    
+    if(((Rs1DeEx>=0)&&((Rs1DeEx==ex_ma_Copy.Rd)||(Rs1DeEx==ma_wb_Copy.Rd))))//hazard due to Rs1
+    {
+        DataHazard = true;
+    }
+    if(((Rs2DeEx>=0)&&((Rs2DeEx==ex_ma_Copy.Rd)||(Rs2DeEx==ma_wb_Copy.Rd))))//hazard due to Rs2
+    {
+        DataHazard = true;
+    }
+
+    // if()//for control hazard
+    // {
+        
+    // }
+
+
+    if((!DataHazard)&&(!ControlHazard))//Normally copying the data to main pipeline
+    {
+        currentInstruction = currentInstruction_Copy.to_ulong();
+        de_ex_mainPipeline = de_ex_Copy;
+        ex_ma_mainPipeline =ex_ma_Copy;
+        ma_wb_mainPipeline = ma_wb_Copy;
+    }
+    else if (DataHazard&&(!ControlHazard))//Only dta hazard
+    {
+        HaltDE = true;
+        HaltIf = true;
+        de_ex_mainPipeline = de_ex_No_Op;//no op to execute
+        ex_ma_mainPipeline =ex_ma_Copy;//copying the things to ma stage
+        ma_wb_mainPipeline = ma_wb_Copy;//copying the things to wb stage                
+    }
+    else if(ControlHazard&&(!DataHazard))//Only Control hazard
+    {
+
+    }
+    else//Both at the same time
+    {
+
+    }
+    
+    
+
+}
+
+
 void RISCv_Processor()
 {
     bool ispipeLine = false;
@@ -1243,6 +1329,7 @@ void RISCv_Processor()
             Memory_Access d;
             Write_Back e;
             Clock++;
+            resolveHazards();
         }
         else
         {
@@ -1254,49 +1341,54 @@ void RISCv_Processor()
                 Decode b;
                 //copy here to the main pipe line
                 {
-                    de_ex_mainPipeline.Op2 = de_ex_Copy.Op2;                  
-                    de_ex_mainPipeline.Op1 = de_ex_Copy.Op1;                  
-                    de_ex_mainPipeline.Rd = de_ex_Copy.Rd;                   
-                    de_ex_mainPipeline.imm =  de_ex_Copy.imm;                  
-                    de_ex_mainPipeline.immU = de_ex_Copy.immU ;                 
-                    de_ex_mainPipeline.immS = de_ex_Copy.immS;                 
-                    de_ex_mainPipeline.immJ = de_ex_Copy.immJ;                 
-                    de_ex_mainPipeline.immB = de_ex_Copy.immB;                 
-                    de_ex_mainPipeline.branch_target_select = de_ex_Copy.branch_target_select; 
-                    de_ex_mainPipeline.Result_select = de_ex_Copy.Result_select ;        
-                    de_ex_mainPipeline.ALU_Operation = de_ex_Copy.ALU_Operation;
-                    de_ex_mainPipeline.mem_OP = de_ex_Copy.mem_OP;               
-                    de_ex_mainPipeline.RFWrite = de_ex_Copy.RFWrite;              
-                    de_ex_mainPipeline.Store_load_op = de_ex_Copy.Store_load_op;        
-                    de_ex_mainPipeline.Mem_Op2 = de_ex_Copy.Mem_Op2; 
+                    // de_ex_mainPipeline.Op2 = de_ex_Copy.Op2;                  
+                    // de_ex_mainPipeline.Op1 = de_ex_Copy.Op1;                  
+                    // de_ex_mainPipeline.Rd = de_ex_Copy.Rd;                   
+                    // de_ex_mainPipeline.imm =  de_ex_Copy.imm;                  
+                    // de_ex_mainPipeline.immU = de_ex_Copy.immU ;                 
+                    // de_ex_mainPipeline.immS = de_ex_Copy.immS;                 
+                    // de_ex_mainPipeline.immJ = de_ex_Copy.immJ;                 
+                    // de_ex_mainPipeline.immB = de_ex_Copy.immB;                 
+                    // de_ex_mainPipeline.branch_target_select = de_ex_Copy.branch_target_select; 
+                    // de_ex_mainPipeline.Result_select = de_ex_Copy.Result_select ;        
+                    // de_ex_mainPipeline.ALU_Operation = de_ex_Copy.ALU_Operation;
+                    // de_ex_mainPipeline.mem_OP = de_ex_Copy.mem_OP;               
+                    // de_ex_mainPipeline.RFWrite = de_ex_Copy.RFWrite;              
+                    // de_ex_mainPipeline.Store_load_op = de_ex_Copy.Store_load_op;        
+                    // de_ex_mainPipeline.Mem_Op2 = de_ex_Copy.Mem_Op2; 
+
+                    de_ex_mainPipeline = de_ex_Copy;
                 }             
                 Execute c;
                 //copy here to the main pipe line
                 {
-                    ex_ma_mainPipeline.isBranch = ex_ma_Copy.isBranch;                               // will tell whether to branch or not
-                    ex_ma_mainPipeline.ALU_result =  ex_ma_Copy.ALU_result;                             // will store the result of the alu
+                    // ex_ma_mainPipeline.isBranch = ex_ma_Copy.isBranch;                               // will tell whether to branch or not
+                    // ex_ma_mainPipeline.ALU_result =  ex_ma_Copy.ALU_result;                             // will store the result of the alu
 
-                    ex_ma_mainPipeline.Rd = ex_ma_Copy.Rd;                   // RF write destinstion
-                    ex_ma_mainPipeline.immU = ex_ma_Copy.immU;                 // don't care
-                    ex_ma_mainPipeline.branch_target_select = ex_ma_Copy.branch_target_select; // don't care
-                    ex_ma_mainPipeline.Result_select =  ex_ma_Copy.Result_select;        // 3: ALU result
-                    ex_ma_mainPipeline.mem_OP = ex_ma_Copy.mem_OP;               // 0:No operation
-                    ex_ma_mainPipeline.RFWrite = ex_ma_Copy.RFWrite;              // 1:for write operation
-                    ex_ma_mainPipeline.Store_load_op = ex_ma_Copy.Store_load_op;        // dont care
-                    ex_ma_mainPipeline.Mem_Op2 =ex_ma_Copy.Mem_Op2;    
+                    // ex_ma_mainPipeline.Rd = ex_ma_Copy.Rd;                   // RF write destinstion
+                    // ex_ma_mainPipeline.immU = ex_ma_Copy.immU;                 // don't care
+                    // ex_ma_mainPipeline.branch_target_select = ex_ma_Copy.branch_target_select; // don't care
+                    // ex_ma_mainPipeline.Result_select =  ex_ma_Copy.Result_select;        // 3: ALU result
+                    // ex_ma_mainPipeline.mem_OP = ex_ma_Copy.mem_OP;               // 0:No operation
+                    // ex_ma_mainPipeline.RFWrite = ex_ma_Copy.RFWrite;              // 1:for write operation
+                    // ex_ma_mainPipeline.Store_load_op = ex_ma_Copy.Store_load_op;        // dont care
+                    // ex_ma_mainPipeline.Mem_Op2 =ex_ma_Copy.Mem_Op2;    
+
+                    ex_ma_mainPipeline = ex_ma_Copy;
                 }
                 Memory_Access d;
                 //copy here to the main pipe line
                 {
-                    ma_wb_mainPipeline.loaded_mem = ma_wb_Copy.loaded_mem; // dont care
+                    // ma_wb_mainPipeline.loaded_mem = ma_wb_Copy.loaded_mem; // dont care
 
-                    ma_wb_mainPipeline.Rd = ma_wb_Copy.Rd;   // RF write destinstion
-                    ma_wb_mainPipeline.immU = ma_wb_Copy.immU; // dont care
-                    // intmama_wb_mainPipelinech_target_select=0; // 0 for immB; 1 for immJ
-                    ma_wb_mainPipeline.Result_select = ma_wb_Copy.Result_select;                          // 3: ALU result
-                    ma_wb_mainPipeline.RFWrite = ma_wb_Copy.RFWrite;                                // 1:for write operation
-                    ma_wb_mainPipeline.ALU_result = ma_wb_Copy.ALU_result ;                             // will store the result of the alu
-                    ma_wb_mainPipeline.isBranch = ma_wb_Copy.isBranch;    
+                    // ma_wb_mainPipeline.Rd = ma_wb_Copy.Rd;   // RF write destinstion
+                    // ma_wb_mainPipeline.immU = ma_wb_Copy.immU; // dont care
+                    // // intmama_wb_mainPipelinech_target_select=0; // 0 for immB; 1 for immJ
+                    // ma_wb_mainPipeline.Result_select = ma_wb_Copy.Result_select;                          // 3: ALU result
+                    // ma_wb_mainPipeline.RFWrite = ma_wb_Copy.RFWrite;                                // 1:for write operation
+                    // ma_wb_mainPipeline.ALU_result = ma_wb_Copy.ALU_result ;                             // will store the result of the alu
+                    // ma_wb_mainPipeline.isBranch = ma_wb_Copy.isBranch;    
+                    ma_wb_mainPipeline = ma_wb_Copy;
                 }
                 Write_Back e;
                 Clock++;
