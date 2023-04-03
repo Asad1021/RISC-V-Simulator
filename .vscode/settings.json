@@ -5,5 +5,12 @@
         "iostream": "cpp",
         "iosfwd": "cpp",
         "fstream": "cpp"
-    }
+    },
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/mnt/STUDY/GitHub/RISC-V-Simulator",
+            "binaryPath": "/mnt/STUDY/GitHub/RISC-V-Simulator/myRISCV",
+            "binaryArgs": []
+        }
+    ]
 }

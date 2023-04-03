@@ -27,7 +27,6 @@ ifstream readFile("input.mc");
 bitset<32> currentPCAdd(0);
 bitset<32> nextPCAdd(0);
 bitset<32> currentInstruction;
-bitset<32> currentInstruction_Copy;
 
 bool HaltIF;
 // if this instruction is read then program exits
@@ -57,6 +56,7 @@ typedef struct de_ex_pipeline
     int Op1, Op2; // oprands
     int Rd;       // RF write destinstion
     int Rs1,Rs2;
+    char InstType;
     int imm, immU, immS, immJ, immB;
     int branch_target_select; // 0 for immB; 1 for immJ
     int Result_select;        // 0:PC+4 ; 1:ImmU; 2:Load data; 3: ALU result
@@ -68,10 +68,9 @@ typedef struct de_ex_pipeline
 
 } de_ex_pipe;
 
-de_ex_pipe de_ex_mainPipeline, de_ex_Copy, de_ex_No_Op;
+de_ex_pipe de_ex_mainPipeline, de_ex_No_Op;
 
 int RF[32]; // Register file
-bool HaltDE;
 
 
 typedef struct ex_ma_handshake
@@ -98,7 +97,7 @@ typedef struct ex_ma_pipeline
     int Mem_Op2;
 } ex_ma_pipe;
 
-ex_ma_pipe ex_ma_mainPipeline, ex_ma_Copy, ex_ma_No_Op;
+ex_ma_pipe ex_ma_mainPipeline, ex_ma_No_Op;
 
 #pragma endregion EXECUTE_RELATED_DATA
 
@@ -124,7 +123,7 @@ typedef struct ma_wb_pipeline
     int isBranch;   // will tell whether to branch or not
 } ma_wb_pipe;
 
-ma_wb_pipe ma_wb_mainPipeline, ma_wb_Copy, ma_wb_No_Op;
+ma_wb_pipe ma_wb_mainPipeline, ma_wb_No_Op;
 #pragma endregion MEM_ACC_RELATED_DATA
 
 class Fetch
@@ -219,8 +218,8 @@ public:
         if(!HaltIF)
         {
             cout << "\n### Fetch ###\n\n";
-            currentInstruction_Copy = fetch_instruction(flag);
-            cout << "FETCH:Fetch instruction " << currentInstruction_Copy << " From address " << currentPCAdd << endl;
+            currentInstruction = fetch_instruction(flag);
+            cout << "FETCH:Fetch instruction " << currentInstruction << " From address " << currentPCAdd << endl;
             cout << "\n### End Fetch ###\n\n";
         }
         else HaltIF=false;//resetting the flag so that next time this will execute asusual
@@ -315,6 +314,7 @@ class Decode
         else
             type_of_instruction = 'Z';
 
+        de_ex_mainPipeline.InstType = type_of_instruction;
         switch (type_of_instruction)
         {
         case 'R':
@@ -405,8 +405,8 @@ class Decode
             hs_de_ex.Op1 = RF[rs1.to_ulong()]; // value of rs1
             hs_de_ex.Op2 = RF[rs2.to_ulong()]; // value of rs2
 
-            de_ex_Copy.Rs1 = rs1.to_ulong();
-            de_ex_Copy.Rs2 = rs2.to_ulong();
+            de_ex_mainPipeline.Rs1 = rs1.to_ulong();
+            de_ex_mainPipeline.Rs2 = rs2.to_ulong();
 
             hs_de_ex.Rd = rd.to_ulong();       // address of RD
             cout << "DECODE: "
@@ -527,8 +527,8 @@ class Decode
             hs_de_ex.Op2 = (int)imm.to_ulong(); // value of rs2
             hs_de_ex.Rd = rd.to_ulong();        // address of RD
 
-            de_ex_Copy.Rs1 = rs1.to_ulong();
-            de_ex_Copy.Rs2 = -1;
+            de_ex_mainPipeline.Rs1 = rs1.to_ulong();
+            de_ex_mainPipeline.Rs2 = -1;
 
 
             cout << ", First Operand X" << rs1.to_ulong() << ", Second Operand imm"
@@ -586,8 +586,8 @@ class Decode
             hs_de_ex.Op2 = (int)immS.to_ulong();
             hs_de_ex.Mem_Op2 = RF[rs2.to_ulong()];
 
-            de_ex_Copy.Rs1 = rs1.to_ulong();
-            de_ex_Copy.Rs2 = rs2.to_ulong();
+            de_ex_mainPipeline.Rs1 = rs1.to_ulong();
+            de_ex_mainPipeline.Rs2 = rs2.to_ulong();
 
 
             cout << "First Operand X" << rs1.to_ulong() << ", Second Operand immS = " << immS.to_ulong() << endl;
@@ -614,8 +614,8 @@ class Decode
             hs_de_ex.Op1 = RF[rs1.to_ulong()];
             hs_de_ex.Op2 = RF[rs2.to_ulong()];
 
-            de_ex_Copy.Rs1 = rs1.to_ulong();
-            de_ex_Copy.Rs2 = rs2.to_ulong();
+            de_ex_mainPipeline.Rs1 = rs1.to_ulong();
+            de_ex_mainPipeline.Rs2 = rs2.to_ulong();
 
 
             bitset<13> temp;
@@ -759,8 +759,8 @@ class Decode
                 hs_de_ex.RFWrite = 1;
                 hs_de_ex.Result_select = 1;
 
-                de_ex_Copy.Rs1 = -1;
-                de_ex_Copy.Rs2 = -1;
+                de_ex_mainPipeline.Rs1 = -1;
+                de_ex_mainPipeline.Rs2 = -1;
 
 
                 cout << "AUIPC\n";
@@ -819,8 +819,8 @@ class Decode
             hs_de_ex.Result_select = 0;
             hs_de_ex.RFWrite = 1;
 
-            de_ex_Copy.Rs1 = -1;
-            de_ex_Copy.Rs2 = -1;
+            de_ex_mainPipeline.Rs1 = -1;
+            de_ex_mainPipeline.Rs2 = -1;
 
             cout << "DECODE: "
                  << "Destination Register X" << rd.to_ulong() << ", immJ = " << immJ.to_ulong() << endl;
@@ -838,21 +838,21 @@ class Decode
         cout << "\n### End Decode ###\n\n";
 
         // copying the data to Copy Of the pipe line
-        de_ex_Copy.Op1 = hs_de_ex.Op1;
-        de_ex_Copy.Op2 = hs_de_ex.Op2;
-        de_ex_Copy.Rd = hs_de_ex.Rd;
-        de_ex_Copy.imm = hs_de_ex.imm;
-        de_ex_Copy.immU = hs_de_ex.immU;
-        de_ex_Copy.immS = hs_de_ex.immS;
-        de_ex_Copy.immJ = hs_de_ex.immJ;
-        de_ex_Copy.immB = hs_de_ex.immB;
-        de_ex_Copy.branch_target_select = hs_de_ex.branch_target_select;
-        de_ex_Copy.Result_select = hs_de_ex.Result_select;
-        de_ex_Copy.ALU_Operation = hs_de_ex.ALU_Operation;
-        de_ex_Copy.mem_OP = hs_de_ex.mem_OP;
-        de_ex_Copy.RFWrite = hs_de_ex.RFWrite;
-        de_ex_Copy.Store_load_op = hs_de_ex.Store_load_op;
-        de_ex_Copy.Mem_Op2 = hs_de_ex.Mem_Op2;
+        de_ex_mainPipeline.Op1 = hs_de_ex.Op1;
+        de_ex_mainPipeline.Op2 = hs_de_ex.Op2;
+        de_ex_mainPipeline.Rd = hs_de_ex.Rd;
+        de_ex_mainPipeline.imm = hs_de_ex.imm;
+        de_ex_mainPipeline.immU = hs_de_ex.immU;
+        de_ex_mainPipeline.immS = hs_de_ex.immS;
+        de_ex_mainPipeline.immJ = hs_de_ex.immJ;
+        de_ex_mainPipeline.immB = hs_de_ex.immB;
+        de_ex_mainPipeline.branch_target_select = hs_de_ex.branch_target_select;
+        de_ex_mainPipeline.Result_select = hs_de_ex.Result_select;
+        de_ex_mainPipeline.ALU_Operation = hs_de_ex.ALU_Operation;
+        de_ex_mainPipeline.mem_OP = hs_de_ex.mem_OP;
+        de_ex_mainPipeline.RFWrite = hs_de_ex.RFWrite;
+        de_ex_mainPipeline.Store_load_op = hs_de_ex.Store_load_op;
+        de_ex_mainPipeline.Mem_Op2 = hs_de_ex.Mem_Op2;
     }
 
 public:
@@ -898,50 +898,50 @@ class Execute
 
             cout << "ALU performing addition operation" << endl;
             cout << "Execute: ADD " << op1 << " and " << op2 << endl;
-            ex_ma_Copy.ALU_result = op1 + op2;
-            ex_ma_Copy.isBranch = 0;
+            ex_ma_mainPipeline.ALU_result = op1 + op2;
+            ex_ma_mainPipeline.isBranch = 0;
             break;
         case 1: // it will perform subtraction in ALU
             cout << "ALU performing subtraction operation" << endl;
             cout << "Execute: SUB " << op1 << " and " << op2 << endl;
-            ex_ma_Copy.ALU_result = op1 - op2;
-            ex_ma_Copy.isBranch = 0;
+            ex_ma_mainPipeline.ALU_result = op1 - op2;
+            ex_ma_mainPipeline.isBranch = 0;
             break;
         case 2: // it will perform logical XOR in ALU
             cout << "ALU performing XOR operation" << endl;
             cout << "Execute: XOR " << op1 << " and " << op2 << endl;
-            ex_ma_Copy.ALU_result = op1 ^ op2;
-            ex_ma_Copy.isBranch = 0;
+            ex_ma_mainPipeline.ALU_result = op1 ^ op2;
+            ex_ma_mainPipeline.isBranch = 0;
             break;
         case 3: // it will perform logical OR in ALU
             cout << "ALU performing OR operation" << endl;
             cout << "Execute: OR " << op1 << " and " << op2 << endl;
-            ex_ma_Copy.ALU_result = op1 | op2;
-            ex_ma_Copy.isBranch = 0;
+            ex_ma_mainPipeline.ALU_result = op1 | op2;
+            ex_ma_mainPipeline.isBranch = 0;
             break;
         case 4: // it will perform logical AND in ALU
             cout << "ALU performing AND operation" << endl;
             cout << "Execute: AND " << op1 << " and " << op2 << endl;
-            ex_ma_Copy.ALU_result = op1 & op2;
-            ex_ma_Copy.isBranch = 0;
+            ex_ma_mainPipeline.ALU_result = op1 & op2;
+            ex_ma_mainPipeline.isBranch = 0;
             break;
         case 5: // it will perform shift left logical in ALU
             cout << "ALU performing logical left shift operation" << endl;
             cout << "Execute: SLL " << op1 << " and " << op2 << endl;
-            ex_ma_Copy.ALU_result = op1 << op2;
-            ex_ma_Copy.isBranch = 0;
+            ex_ma_mainPipeline.ALU_result = op1 << op2;
+            ex_ma_mainPipeline.isBranch = 0;
             break;
         case 6: // it will perform shift right logical in ALU
-            ex_ma_Copy.ALU_result = srl(op1, op2);
+            ex_ma_mainPipeline.ALU_result = srl(op1, op2);
             cout << "ALU performing logical right shift operation" << endl;
             cout << "Execute: SRL " << op1 << " and " << op2 << endl;
-            ex_ma_Copy.isBranch = 0;
+            ex_ma_mainPipeline.isBranch = 0;
             break;
         case 7: // it will perform shift right arithmetic in ALU
             cout << "ALU performing arithmetic right shift operation" << endl;
             cout << "Execute: SRA " << op1 << " and " << op2 << endl;
-            ex_ma_Copy.ALU_result = op1 >> op2;
-            ex_ma_Copy.isBranch = 0;
+            ex_ma_mainPipeline.ALU_result = op1 >> op2;
+            ex_ma_mainPipeline.isBranch = 0;
             break;
 
         case 8: // it will perform set less than in ALU
@@ -949,44 +949,44 @@ class Execute
             cout << "Execute: SLT " << op1 << " and " << op2 << endl;
             if (op1 < op2)
             {
-                ex_ma_Copy.ALU_result = 1;
+                ex_ma_mainPipeline.ALU_result = 1;
             }
             else
-                ex_ma_Copy.ALU_result = 0;
+                ex_ma_mainPipeline.ALU_result = 0;
 
-            ex_ma_Copy.isBranch = 0;
+            ex_ma_mainPipeline.isBranch = 0;
             break;
             // for branching, we are assigning 0 for no branch, 1 for branch target adress, and 2 for ALU result, i.e for JALR
 
         case 9: // will check for beq
             cout << "ALU checking for beq" << endl;
             cout << "Execute: SUB " << op1 << " and " << op2 << endl;
-            ex_ma_Copy.ALU_result = op1 - op2;
-            if (ex_ma_Copy.ALU_result == 0)
+            ex_ma_mainPipeline.ALU_result = op1 - op2;
+            if (ex_ma_mainPipeline.ALU_result == 0)
             {
-                ex_ma_Copy.isBranch = 1;
+                ex_ma_mainPipeline.isBranch = 1;
                 cout << "Branching done" << endl;
                 cout << "immb=" << de_ex_mainPipeline.immB << endl;
                 nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong(); // making pc=pc+immb
             }
             else
             {
-                ex_ma_Copy.isBranch = 0;
+                ex_ma_mainPipeline.isBranch = 0;
                 cout << "No branching" << endl;
             }
             break;
 
         case 10: // will check for bne
             cout << "Execute: SUB " << op1 << " and " << op2 << endl;
-            ex_ma_Copy.ALU_result = op1 - op2;
-            if (ex_ma_Copy.ALU_result == 0)
+            ex_ma_mainPipeline.ALU_result = op1 - op2;
+            if (ex_ma_mainPipeline.ALU_result == 0)
             {
-                ex_ma_Copy.isBranch = 0;
+                ex_ma_mainPipeline.isBranch = 0;
                 cout << "No branching" << endl;
             }
             else
             {
-                ex_ma_Copy.isBranch = 1;
+                ex_ma_mainPipeline.isBranch = 1;
                 cout << "Branching done" << endl;
                 nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong(); // making pc=pc+immb
             }
@@ -994,46 +994,46 @@ class Execute
 
         case 11: // will check for blt
             cout << "Execute: SUB " << op1 << " and " << op2 << endl;
-            ex_ma_Copy.ALU_result = op1 - op2;
-            if (ex_ma_Copy.ALU_result < 0)
+            ex_ma_mainPipeline.ALU_result = op1 - op2;
+            if (ex_ma_mainPipeline.ALU_result < 0)
             {
-                ex_ma_Copy.isBranch = 1;
+                ex_ma_mainPipeline.isBranch = 1;
                 cout << "Branching done" << endl;
                 nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong(); // making pc=pc+imm
             }
             else
             {
-                ex_ma_Copy.isBranch = 0;
+                ex_ma_mainPipeline.isBranch = 0;
                 cout << "No branching" << endl;
             }
             break;
 
         case 12: // will check for bge
             cout << "Execute: SUB " << op1 << " and " << op2 << endl;
-            ex_ma_Copy.ALU_result = op1 - op2;
+            ex_ma_mainPipeline.ALU_result = op1 - op2;
             cout << "OP1:" << de_ex_mainPipeline.Op1;
             cout << "OP2:" << de_ex_mainPipeline.Op2;
-            if (ex_ma_Copy.ALU_result >= 0)
+            if (ex_ma_mainPipeline.ALU_result >= 0)
             {
-                ex_ma_Copy.isBranch = 1;
+                ex_ma_mainPipeline.isBranch = 1;
                 cout << "Branching done" << endl;
                 nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong(); // making pc=pc+immb
             }
             else
             {
-                ex_ma_Copy.isBranch = 0;
+                ex_ma_mainPipeline.isBranch = 0;
                 cout << "No branching" << endl;
             }
             break;
 
         case 13: // lui
-            ex_ma_Copy.isBranch = 0;
+            ex_ma_mainPipeline.isBranch = 0;
             cout << "Executin LUI " << endl;
             break;
 
         case 14: // JAL
             cout << "Executing JAL" << endl;
-            ex_ma_Copy.isBranch = 1;
+            ex_ma_mainPipeline.isBranch = 1;
             nextPCAdd = currentPCAdd.to_ulong() + 4;
             nextPCAdd = de_ex_mainPipeline.immJ + currentPCAdd.to_ulong(); // making pc=pc+immj
             // cout<<"jal worked :"<<nextPCAdd;
@@ -1042,15 +1042,15 @@ class Execute
         case 15: // jalr
             cout << "Executing JALR" << endl;
             cout << "Execute: ADD " << op1 << " and " << op2 << endl;
-            ex_ma_Copy.ALU_result = op1 + op2;
-            ex_ma_Copy.isBranch = 2;
+            ex_ma_mainPipeline.ALU_result = op1 + op2;
+            ex_ma_mainPipeline.isBranch = 2;
             nextPCAdd = op1 + op2; // making pc=pc+immj
             // must give rd in jalr for xi=pc+4
             break;
 
         case 16: // auipc
             cout << "Executing AUIPC" << endl;
-            ex_ma_Copy.isBranch = 0;
+            ex_ma_mainPipeline.isBranch = 0;
             de_ex_mainPipeline.immU = currentPCAdd.to_ulong() + de_ex_mainPipeline.immU;
 
             break;
@@ -1059,14 +1059,14 @@ class Execute
             cout << "Some error has occured in decode!!";
         }
 
-        ex_ma_Copy.branch_target_select=de_ex_mainPipeline.branch_target_select;
-        ex_ma_Copy.immU=de_ex_mainPipeline.immU;
-        ex_ma_Copy.Rd=de_ex_mainPipeline.Rd;
-        ex_ma_Copy.Result_select=de_ex_mainPipeline.Result_select;
-        ex_ma_Copy.mem_OP=de_ex_mainPipeline.mem_OP;
-        ex_ma_Copy.RFWrite=de_ex_mainPipeline.RFWrite;
-        ex_ma_Copy.Store_load_op=de_ex_mainPipeline.Store_load_op;
-        ex_ma_Copy.Mem_Op2=de_ex_mainPipeline.Mem_Op2;
+        ex_ma_mainPipeline.branch_target_select=de_ex_mainPipeline.branch_target_select;
+        ex_ma_mainPipeline.immU=de_ex_mainPipeline.immU;
+        ex_ma_mainPipeline.Rd=de_ex_mainPipeline.Rd;
+        ex_ma_mainPipeline.Result_select=de_ex_mainPipeline.Result_select;
+        ex_ma_mainPipeline.mem_OP=de_ex_mainPipeline.mem_OP;
+        ex_ma_mainPipeline.RFWrite=de_ex_mainPipeline.RFWrite;
+        ex_ma_mainPipeline.Store_load_op=de_ex_mainPipeline.Store_load_op;
+        ex_ma_mainPipeline.Mem_Op2=de_ex_mainPipeline.Mem_Op2;
         cout << "\n### End Execute ###\n\n";
     }
 
@@ -1150,15 +1150,15 @@ class Memory_Access
 
         cout << "\n### End Memmory Access ###\n\n";
         
-        ma_wb_Copy.loaded_mem = loaddata; // dont care
-        ma_wb_Copy.Rd = ex_ma_mainPipeline.Rd;   // RF write destinstion
-        ma_wb_Copy.immU = ex_ma_mainPipeline.immU; // dont care
+        ma_wb_mainPipeline.loaded_mem = loaddata; // dont care
+        ma_wb_mainPipeline.Rd = ex_ma_mainPipeline.Rd;   // RF write destinstion
+        ma_wb_mainPipeline.immU = ex_ma_mainPipeline.immU; // dont care
                 // intmama_wb_mainPipelinech_target_select=0; // 0 for immB; 1 for immJ
-        ma_wb_Copy.Result_select = ex_ma_mainPipeline.Result_select;                          // 3: ALU result
-        ma_wb_Copy.RFWrite = ex_ma_mainPipeline.RFWrite;                                // 1:for write operation
-        // ma_wb_Copy.PC_plus_four = currentPCAdd.to_ulong() + 4; // #################this will not be the case#######################
-        ma_wb_Copy.ALU_result = ex_ma_mainPipeline.ALU_result ;                             // will store the result of the alu
-        ma_wb_Copy.isBranch = ex_ma_mainPipeline.isBranch;
+        ma_wb_mainPipeline.Result_select = ex_ma_mainPipeline.Result_select;                          // 3: ALU result
+        ma_wb_mainPipeline.RFWrite = ex_ma_mainPipeline.RFWrite;                                // 1:for write operation
+        // ma_wb_mainPipeline.PC_plus_four = currentPCAdd.to_ulong() + 4; // #################this will not be the case#######################
+        ma_wb_mainPipeline.ALU_result = ex_ma_mainPipeline.ALU_result ;                             // will store the result of the alu
+        ma_wb_mainPipeline.isBranch = ex_ma_mainPipeline.isBranch;
     }
     
 
@@ -1265,40 +1265,71 @@ public:
 
 void resolveHazards(){
     bool DataHazard,//true if there is data hazard
-         ControlHazard;//true if there is control hazard
+         ControlHazard,//true if there is control hazard
+         RefreshOprands,//true if decode is halted beforea and need to refresh its oprands to procede further
+         PushNoOp;//true if we have to push no op in the ex-ma stage
 
-    int Rs1DeEx = de_ex_Copy.Rs1;
-    int Rs2DeEx = de_ex_Copy.Rs2;
+    int Rs1DeEx = de_ex_mainPipeline.Rs1;
+    int Rs2DeEx = de_ex_mainPipeline.Rs2;
     
-    if(((Rs1DeEx>=0)&&((Rs1DeEx==ex_ma_Copy.Rd)||(Rs1DeEx==ma_wb_Copy.Rd))))//hazard due to Rs1
+    if(((Rs1DeEx>=0)&&((Rs1DeEx==ex_ma_mainPipeline.Rd)||(Rs1DeEx==ma_wb_mainPipeline.Rd))))//hazard due to Rs1
     {
         DataHazard = true;
+        RefreshOprands = true;
     }
-    if(((Rs2DeEx>=0)&&((Rs2DeEx==ex_ma_Copy.Rd)||(Rs2DeEx==ma_wb_Copy.Rd))))//hazard due to Rs2
+    if(((Rs2DeEx>=0)&&((Rs2DeEx==ex_ma_mainPipeline.Rd)||(Rs2DeEx==ma_wb_mainPipeline.Rd))))//hazard due to Rs2
     {
         DataHazard = true;
+        RefreshOprands = true;
     }
 
-    // if()//for control hazard
-    // {
+    if(RefreshOprands&&!DataHazard)//if the decode is previously at halt then we have to refresh its operands so that it contains the new values
+    {
+        RefreshOprands = false;
+        switch (de_ex_mainPipeline.InstType)
+        {
+            case 'R':
+                {
+                    de_ex_mainPipeline.Op1 = RF[Rs1DeEx];
+                    de_ex_mainPipeline.Op2 = RF[Rs2DeEx];                    
+                }
+                break;
+            case 'I':
+                {
+                    de_ex_mainPipeline.Op1 = RF[Rs1DeEx];
+                }
+                break;
+            case 'S':
+                {
+                    de_ex_mainPipeline.Op1 = RF[Rs1DeEx];
+                    de_ex_mainPipeline.Mem_Op2 = RF[Rs2DeEx];
+                }
+                break;
+            case 'B':
+                {
+                    de_ex_mainPipeline.Op1 = RF[Rs1DeEx];
+                    de_ex_mainPipeline.Op2 = RF[Rs2DeEx];
+                }
+                break;
+            
+            default:
+                break;
+        }
         
-    // }
-
-
-    if((!DataHazard)&&(!ControlHazard))//Normally copying the data to main pipeline
-    {
-        currentInstruction = currentInstruction_Copy.to_ulong();
-        de_ex_mainPipeline = de_ex_Copy;
-        ex_ma_mainPipeline =ex_ma_Copy;
-        ma_wb_mainPipeline = ma_wb_Copy;
     }
-    else if (DataHazard&&(!ControlHazard))//Only dta hazard
+
+    if(PushNoOp)//pushing the no op in the ex-ma stage
+    {
+        ex_ma_mainPipeline = ex_ma_No_Op;
+        PushNoOp=false;
+    }
+
+
+    if (DataHazard&&(!ControlHazard))//Only dta hazard
     {
         HaltDE = true;
         HaltIf = true;
-        de_ex_mainPipeline = de_ex_No_Op;//no op to execute
-        ex_ma_mainPipeline =ex_ma_Copy;//copying the things to ma stage
-        ma_wb_mainPipeline = ma_wb_Copy;//copying the things to wb stage                
+        PushNoOp=true;//no op to ex-ma stage in the next cycle                    
     }
     else if(ControlHazard&&(!DataHazard))//Only Control hazard
     {
@@ -1336,60 +1367,9 @@ void RISCv_Processor()
             while (1)
             {
                 Fetch a(1);
-                //copy here to the main pipe line
-                currentInstruction = currentInstruction_Copy.to_ulong();
-                Decode b;
-                //copy here to the main pipe line
-                {
-                    // de_ex_mainPipeline.Op2 = de_ex_Copy.Op2;                  
-                    // de_ex_mainPipeline.Op1 = de_ex_Copy.Op1;                  
-                    // de_ex_mainPipeline.Rd = de_ex_Copy.Rd;                   
-                    // de_ex_mainPipeline.imm =  de_ex_Copy.imm;                  
-                    // de_ex_mainPipeline.immU = de_ex_Copy.immU ;                 
-                    // de_ex_mainPipeline.immS = de_ex_Copy.immS;                 
-                    // de_ex_mainPipeline.immJ = de_ex_Copy.immJ;                 
-                    // de_ex_mainPipeline.immB = de_ex_Copy.immB;                 
-                    // de_ex_mainPipeline.branch_target_select = de_ex_Copy.branch_target_select; 
-                    // de_ex_mainPipeline.Result_select = de_ex_Copy.Result_select ;        
-                    // de_ex_mainPipeline.ALU_Operation = de_ex_Copy.ALU_Operation;
-                    // de_ex_mainPipeline.mem_OP = de_ex_Copy.mem_OP;               
-                    // de_ex_mainPipeline.RFWrite = de_ex_Copy.RFWrite;              
-                    // de_ex_mainPipeline.Store_load_op = de_ex_Copy.Store_load_op;        
-                    // de_ex_mainPipeline.Mem_Op2 = de_ex_Copy.Mem_Op2; 
-
-                    de_ex_mainPipeline = de_ex_Copy;
-                }             
-                Execute c;
-                //copy here to the main pipe line
-                {
-                    // ex_ma_mainPipeline.isBranch = ex_ma_Copy.isBranch;                               // will tell whether to branch or not
-                    // ex_ma_mainPipeline.ALU_result =  ex_ma_Copy.ALU_result;                             // will store the result of the alu
-
-                    // ex_ma_mainPipeline.Rd = ex_ma_Copy.Rd;                   // RF write destinstion
-                    // ex_ma_mainPipeline.immU = ex_ma_Copy.immU;                 // don't care
-                    // ex_ma_mainPipeline.branch_target_select = ex_ma_Copy.branch_target_select; // don't care
-                    // ex_ma_mainPipeline.Result_select =  ex_ma_Copy.Result_select;        // 3: ALU result
-                    // ex_ma_mainPipeline.mem_OP = ex_ma_Copy.mem_OP;               // 0:No operation
-                    // ex_ma_mainPipeline.RFWrite = ex_ma_Copy.RFWrite;              // 1:for write operation
-                    // ex_ma_mainPipeline.Store_load_op = ex_ma_Copy.Store_load_op;        // dont care
-                    // ex_ma_mainPipeline.Mem_Op2 =ex_ma_Copy.Mem_Op2;    
-
-                    ex_ma_mainPipeline = ex_ma_Copy;
-                }
+                Decode b;       
+                Execute c; 
                 Memory_Access d;
-                //copy here to the main pipe line
-                {
-                    // ma_wb_mainPipeline.loaded_mem = ma_wb_Copy.loaded_mem; // dont care
-
-                    // ma_wb_mainPipeline.Rd = ma_wb_Copy.Rd;   // RF write destinstion
-                    // ma_wb_mainPipeline.immU = ma_wb_Copy.immU; // dont care
-                    // // intmama_wb_mainPipelinech_target_select=0; // 0 for immB; 1 for immJ
-                    // ma_wb_mainPipeline.Result_select = ma_wb_Copy.Result_select;                          // 3: ALU result
-                    // ma_wb_mainPipeline.RFWrite = ma_wb_Copy.RFWrite;                                // 1:for write operation
-                    // ma_wb_mainPipeline.ALU_result = ma_wb_Copy.ALU_result ;                             // will store the result of the alu
-                    // ma_wb_mainPipeline.isBranch = ma_wb_Copy.isBranch;    
-                    ma_wb_mainPipeline = ma_wb_Copy;
-                }
                 Write_Back e;
                 Clock++;
             }
