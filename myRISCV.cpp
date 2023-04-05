@@ -27,7 +27,7 @@ ifstream readFile("input.mc");
 bitset<32> currentPCAdd(0);
 bitset<32> nextPCAdd(0);
 bitset<32> currentInstruction;
-bitset<32> *instructions;
+char **instructions;
 
 bool HaltIF;
 // if this instruction is read then program exits
@@ -254,8 +254,8 @@ void make_file()
     int offset = 0;
     //total no. instructions
     int n = 0;
-    instructions = (bitset<32>*)malloc(sizeof(bitset<32>));
-    int sizeToAllocate = sizeof(bitset<32>);
+    instructions = (char**)malloc(sizeof(char*));
+    int sizeToAllocate = sizeof(char*);
     while (getline(infile, line))
     {
         // cout << "0x" << hex<<offset << " " << line << endl;
@@ -265,10 +265,16 @@ void make_file()
         // stoul converts string of type 0x012312 to its decimal value
         unsigned long hex_to_dec_val = stoul(hex_str, nullptr, 16);
         bitset<32> binary_num(hex_to_dec_val);
-        sizeToAllocate += sizeof(bitset<32>);
-        instructions = (bitset<32>*)realloc(instructions, sizeToAllocate);
-        *(instructions + (n++)) = binary_num;
-        // cout<<binary_num<<endl;
+        sizeToAllocate += sizeof(char*);
+        instructions[n] = (char *)malloc(32*sizeof(char));
+        instructions = (char**)realloc(instructions, sizeToAllocate);
+        // cout<<(char)0;
+        for(int i = 0; i<32; i++)
+        {
+            // cout<<binary_num[i]
+            instructions[n][i] = (char)(binary_num[i]+'0');
+        }
+        n++;
         outfile << "0x" << hex << offset << " " << line << endl;
         offset += 4; // increase offset by 4 characters
     }
@@ -1462,8 +1468,8 @@ void init_NoOps()
 
 int main()
 {
-    init_NoOps();
+    // init_NoOps();
     make_file();
-    RISCv_Processor();
+    // RISCv_Processor();
     return 0;
 }
