@@ -27,6 +27,7 @@ ifstream readFile("input.mc");
 bitset<32> currentPCAdd(0);
 bitset<32> nextPCAdd(0);
 bitset<32> currentInstruction;
+bitset<32> *instructions;
 
 bool HaltIF;
 // if this instruction is read then program exits
@@ -101,7 +102,6 @@ typedef struct ex_ma_pipeline
 } ex_ma_pipe;
 
 ex_ma_pipe ex_ma_mainPipeline, ex_ma_No_Op;
-
 #pragma endregion EXECUTE_RELATED_DATA
 
 #pragma region MEM_ACC_RELATED_DATA
@@ -252,7 +252,10 @@ void make_file()
 
     string line;
     int offset = 0;
-
+    //total no. instructions
+    int n = 0;
+    instructions = (bitset<32>*)malloc(sizeof(bitset<32>));
+    int sizeToAllocate = sizeof(bitset<32>);
     while (getline(infile, line))
     {
         // cout << "0x" << hex<<offset << " " << line << endl;
@@ -262,11 +265,13 @@ void make_file()
         // stoul converts string of type 0x012312 to its decimal value
         unsigned long hex_to_dec_val = stoul(hex_str, nullptr, 16);
         bitset<32> binary_num(hex_to_dec_val);
+        sizeToAllocate += sizeof(bitset<32>);
+        instructions = (bitset<32>*)realloc(instructions, sizeToAllocate);
+        *(instructions + (n++)) = binary_num;
         // cout<<binary_num<<endl;
         outfile << "0x" << hex << offset << " " << line << endl;
         offset += 4; // increase offset by 4 characters
     }
-
     infile.close();
     outfile.close();
 }
