@@ -8,6 +8,7 @@
 // ################# remember to update mem.Oprands
 
 #define MEMORY_SIZE 120000
+#define INSTMEM_SIZE 12000
 // immb conversion is always a unsigned operation hence we have to convert it to signed one by using typecast
 // immB+PC; immB=immb.to_ulong();//unsigned
 
@@ -28,6 +29,7 @@ bitset<32> currentPCAdd(0);
 bitset<32> nextPCAdd(0);
 bitset<32> currentInstruction;
 bitset<32> *instructions;
+char InstMem[INSTMEM_SIZE];
 
 bool HaltIF;
 // if this instruction is read then program exits
@@ -171,6 +173,7 @@ class Fetch
             cout << endl
                  << "EXITING...\n";
 
+
             ofstream memFile; // storing the memmory array in a txt file.
             memFile.open("Memory_Dump.txt");
 
@@ -184,6 +187,20 @@ class Fetch
                 memFile << i << ": " << hex << temp << (((i + 1) % 4 == 0) ? "\n" : "  |");
             }
             memFile.close();
+
+            ofstream InstFile; // storing the memmory array in a txt file.
+            InstFile.open("Instruction.txt");
+
+            for (int i = 0; i < INSTMEM_SIZE; i++)
+            {
+                unsigned int temp = (unsigned int)(*(InstMem + i));
+                if (temp > INT32_MAX)
+                {
+                    temp = temp - 0xffffff00;
+                }
+                InstFile << i << ": " << hex << temp << (((i + 1) % 4 == 0) ? "\n" : "  |");
+            }
+            InstFile.close();
 
             printRF();
 
@@ -254,8 +271,8 @@ void make_file()
     int offset = 0;
     //total no. instructions
     int n = 0;
-    instructions = (bitset<32>*)malloc(sizeof(bitset<32>));
-    int sizeToAllocate = sizeof(bitset<32>);
+    // instructions = (bitset<32>*)malloc(sizeof(bitset<32>));
+    // int sizeToAllocate = sizeof(bitset<32>);
     while (getline(infile, line))
     {
         // cout << "0x" << hex<<offset << " " << line << endl;
@@ -264,10 +281,19 @@ void make_file()
         hex_str = "0x" + line;
         // stoul converts string of type 0x012312 to its decimal value
         unsigned long hex_to_dec_val = stoul(hex_str, nullptr, 16);
-        bitset<32> binary_num(hex_to_dec_val);
-        sizeToAllocate += sizeof(bitset<32>);
-        instructions = (bitset<32>*)realloc(instructions, sizeToAllocate);
-        *(instructions + (n++)) = binary_num;
+        if(offset>INSTMEM_SIZE-4)
+        {
+            cout<<"Instruction Memory is full. EXITING";
+            exit(0);
+        }
+        int *InstAdd = (int*)(InstMem + offset/*PC ADD. here*/);
+        
+        *InstAdd = hex_to_dec_val;
+
+        // bitset<32> binary_num(hex_to_dec_val);
+        // sizeToAllocate += sizeof(bitset<32>);
+        // instructions = (bitset<32>*)realloc(instructions, sizeToAllocate);
+        // *(instructions + (n++)) = binary_num;
         // cout<<binary_num<<endl;
         outfile << "0x" << hex << offset << " " << line << endl;
         offset += 4; // increase offset by 4 characters
