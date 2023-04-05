@@ -901,11 +901,20 @@ public:
     }
 };
 
+typedef struct BranchTargetBuffer
+{   bitset<32> currentPCAdd;
+    bitset<32> predictedAdd;
+    bool taken;
+    bool valid;
+}B_T_B;
+B_T_B BTB[1000];
+
+
 class Execute
 {
-
     int srl(int op1_int, int op2)
     {
+ BTB[0].taken=true;
         // this will ensure logical right shift in case of SRL instruction
         bitset<32> op1 = op1_int; // convert input decimal number to a bitset
         bitset<32> op1_shifted;   // local bitset for storing shifted bitset
@@ -926,6 +935,8 @@ class Execute
         int op1 = de_ex_mainPipeline.Op1;
         int op2 = de_ex_mainPipeline.Op2;
         int ALU_operation = de_ex_mainPipeline.ALU_Operation;
+        ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.nextPCAdd.to_ulong();  
+        ex_ma_mainPipeline.CurrentPCAdd = de_ex_mainPipeline.CurrentPCAdd.to_ulong();
         cout << "\n### Execute ###\n\n";
 
         switch (ALU_operation)
