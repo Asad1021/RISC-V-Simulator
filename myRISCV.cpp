@@ -887,7 +887,7 @@ class Decode
         de_ex_mainPipeline.Store_load_op = hs_de_ex.Store_load_op;
         de_ex_mainPipeline.Mem_Op2 = hs_de_ex.Mem_Op2;
 
-        de_ex_mainPipeline.nextPCAdd = nextPCAdd.to_ulong();
+        de_ex_mainPipeline.nextPCAdd = currentPCAdd.to_ulong() + 4;
         de_ex_mainPipeline.CurrentPCAdd = currentPCAdd.to_ulong();
     }
 
@@ -937,6 +937,7 @@ class Execute
         int ALU_operation = de_ex_mainPipeline.ALU_Operation;
         ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.nextPCAdd.to_ulong();  
         ex_ma_mainPipeline.CurrentPCAdd = de_ex_mainPipeline.CurrentPCAdd.to_ulong();
+
         cout << "\n### Execute ###\n\n";
 
         switch (ALU_operation)
@@ -1014,7 +1015,7 @@ class Execute
                 ex_ma_mainPipeline.isBranch = 1;
                 cout << "Branching done" << endl;
                 cout << "immb=" << de_ex_mainPipeline.immB << endl;
-                /*ex_ma_mainPipeline.*/nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong(); // making pc=pc+immb
+                ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong();
             }
             else
             {
@@ -1035,7 +1036,7 @@ class Execute
             {
                 ex_ma_mainPipeline.isBranch = 1;
                 cout << "Branching done" << endl;
-                /*ex_ma_mainPipeline.*/nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong(); // making pc=pc+immb
+                ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong();
             }
             break;
 
@@ -1046,7 +1047,7 @@ class Execute
             {
                 ex_ma_mainPipeline.isBranch = 1;
                 cout << "Branching done" << endl;
-                /*ex_ma_mainPipeline.*/nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong(); // making pc=pc+imm
+                ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong();
             }
             else
             {
@@ -1064,7 +1065,7 @@ class Execute
             {
                 ex_ma_mainPipeline.isBranch = 1;
                 cout << "Branching done" << endl;
-                /*ex_ma_mainPipeline.*/nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong(); // making pc=pc+immb
+                ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong();
             }
             else
             {
@@ -1081,17 +1082,16 @@ class Execute
         case 14: // JAL
             cout << "Executing JAL" << endl;
             ex_ma_mainPipeline.isBranch = 1;
-            // /*ex_ma_mainPipeline.*/nextPCAdd = currentPCAdd.to_ulong() + 4;
-            /*ex_ma_mainPipeline.*/nextPCAdd = de_ex_mainPipeline.immJ + currentPCAdd.to_ulong(); // making pc=pc+immj
+            ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.immJ + currentPCAdd.to_ulong();
             // cout<<"jal worked :"<<nextPCAdd;
             break;
 
         case 15: // jalr
             cout << "Executing JALR" << endl;
             cout << "Execute: ADD " << op1 << " and " << op2 << endl;
-            ex_ma_mainPipeline.ALU_result = op1 + op2;
+            ex_ma_mainPipeline.ALU_result = op1 + op2;//op1= rs1 and op2 = imm
             ex_ma_mainPipeline.isBranch = 2;
-            /*ex_ma_mainPipeline.*/nextPCAdd = op1 + op2; // making pc=pc+immj
+            ex_ma_mainPipeline.nextPCAdd = op1 + op2;
             // must give rd in jalr for xi=pc+4
             break;
 
@@ -1114,9 +1114,6 @@ class Execute
         ex_ma_mainPipeline.RFWrite = de_ex_mainPipeline.RFWrite;
         ex_ma_mainPipeline.Store_load_op = de_ex_mainPipeline.Store_load_op;
         ex_ma_mainPipeline.Mem_Op2 = de_ex_mainPipeline.Mem_Op2;
-
-        ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.nextPCAdd.to_ulong();
-        ex_ma_mainPipeline.CurrentPCAdd = de_ex_mainPipeline.CurrentPCAdd.to_ulong();
 
         cout << "\n### End Execute ###\n\n";
     }
@@ -1230,7 +1227,7 @@ class Write_Back
     int rd = ma_wb_mainPipeline.Rd;
     int aluresult = ma_wb_mainPipeline.ALU_result;
 
-    int pc_plus_4 = currentPCAdd.to_ulong() + 4;
+    // int pc_plus_4 = currentPCAdd.to_ulong() + 4;
 
     int loadeddata = ma_wb_mainPipeline.loaded_mem;
     int immu = ma_wb_mainPipeline.immU;
@@ -1246,7 +1243,7 @@ class Write_Back
             switch (rfwrite)
             {
             case 0: // failed conditional branch
-                currentPCAdd = currentPCAdd.to_ulong() + 4;
+               
                 cout << "No write-back required and current PC updated to PC+4" << endl;
                 break;
 
@@ -1254,7 +1251,7 @@ class Write_Back
                 switch (resultselect)
                 {
                 case 0: // pc+4
-                    RF[rd] = /*ma_wb_mainPipeline.*/currentPCAdd.to_ulong() + 4;
+                    RF[rd] = ma_wb_mainPipeline.CurrentPCAdd.to_ulong() +4;
                     break;
 
                 case 1: // immu - lui & auipc
@@ -1270,7 +1267,7 @@ class Write_Back
                     break;
                 }
                 cout << "Write " << RF[rd] << " to register " << rd << endl;
-                currentPCAdd = currentPCAdd.to_ulong() + 4;
+                
                 cout << "Current PC updated to PC+4" << endl;
                 break;
             }
@@ -1281,15 +1278,17 @@ class Write_Back
             switch (rfwrite)
             {
             case 0: // conditional branch
-                currentPCAdd = /*ma_wb_mainPipeline.*/nextPCAdd.to_ulong();
+                
                 cout << "Condtional branch"
                      << ", current PC = " << currentPCAdd << endl;
 
                 break;
 
             case 1: // jal
-                RF[rd] = currentPCAdd.to_ulong() + 4;
-                currentPCAdd = /*ma_wb_mainPipeline.*/nextPCAdd.to_ulong();
+               
+                RF[rd] = ma_wb_mainPipeline.CurrentPCAdd.to_ulong() +4;
+                
+                
                 cout << "Write " << RF[rd] << " to register " << rd << endl;
                 cout << "Current PC address updated to: " << currentPCAdd;
                 break;
@@ -1297,9 +1296,8 @@ class Write_Back
             break;
 
         case 2: // jalr
-            RF[rd] = currentPCAdd.to_ulong() + 4;
-
-            currentPCAdd = nextPCAdd.to_ulong();//###########################################
+           
+            RF[rd] = ma_wb_mainPipeline.CurrentPCAdd.to_ulong() +4;
 
             cout << "Write " << RF[rd] << " to register " << rd << endl;
             cout << "Current PC address updated to: " << currentPCAdd;
@@ -1334,6 +1332,8 @@ void refreshOprands(bool RefreshOprands,bool DataHazard,int Rs1DeEx,int Rs2DeEx)
         case 'I':
         {
             de_ex_mainPipeline.Op1 = RF[Rs1DeEx];
+            if(de_ex_mainPipeline.ALU_Operation == 15)//jalr
+            ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.Op1 + de_ex_mainPipeline.imm;
         }
         break;
         case 'S':
@@ -1381,13 +1381,12 @@ void resolveHazards()
         RefreshOprands = true;
     }
 
-    if(ex_ma_mainPipeline.isBranch==1||ex_ma_mainPipeline.isBranch==2)
+    refreshOprands(DataHazard,RefreshOprands,Rs1DeEx,Rs2DeEx);//refreshes the oprands
+
+    if((ex_ma_mainPipeline.nextPCAdd.to_ulong()!=-1/*Is valid*/)&&(ex_ma_mainPipeline.nextPCAdd.to_ulong() !=(currentPCAdd.to_ulong())&&(!DataHazard)))
     {
         ControlHazard = true;
     }
-
-    refreshOprands(DataHazard,RefreshOprands,Rs1DeEx,Rs2DeEx);//refreshes the oprands
-
 
     if (PushNoOp) // pushing the no op in the ex-ma stage
     {
@@ -1405,11 +1404,13 @@ void resolveHazards()
     {
         currentInstruction = 51;//noOp
         de_ex_mainPipeline = de_ex_No_Op;
-
         currentPCAdd = ex_ma_mainPipeline.nextPCAdd;
+        ControlHazard = false;
     }
     else // Both at the same time
     {
+        //case is not possible
+        cout<<"Unexpected Error Occured";
     }
 }
 
@@ -1427,6 +1428,7 @@ void RISCv_Processor()
             Execute c;
             Decode b;
             Fetch a(1);
+            currentPCAdd = currentPCAdd.to_ulong()+4;
             Clock++;
             resolveHazards();
         }
@@ -1439,6 +1441,7 @@ void RISCv_Processor()
                 Execute c;
                 Memory_Access d;
                 Write_Back e;
+                currentPCAdd = ma_wb_mainPipeline.nextPCAdd.to_ulong();//update PC
                 Clock++;
             }
         }
@@ -1463,6 +1466,10 @@ void init_NoOps()
         de_ex_No_Op.RFWrite = 1;              // write operation
         de_ex_No_Op.Store_load_op = 0;        // don't care
         de_ex_No_Op.Mem_Op2 = 0;              // don't care
+        de_ex_mainPipeline.nextPCAdd = -1;//flag value
+        de_ex_mainPipeline.CurrentPCAdd = -1;
+        de_ex_mainPipeline.InstType = 'R';//R for add 
+
     }
 
     {                               // here is the NoOp(add x0 x0 x0) instructiion for ex_ma stage pipeline
@@ -1477,6 +1484,8 @@ void init_NoOps()
         ex_ma_No_Op.RFWrite = 1;              // 1:for write operation
         ex_ma_No_Op.Store_load_op = 0;        // dont care
         ex_ma_No_Op.Mem_Op2 = 0;              // dont care
+        ex_ma_mainPipeline.nextPCAdd = -1;//flag value
+        ex_ma_mainPipeline.CurrentPCAdd = -1;
     }
 
     {                               // here is the NoOp(add x0 x0 x0) instructiion for ma_wb stage pipeline
@@ -1489,6 +1498,8 @@ void init_NoOps()
         ma_wb_No_Op.RFWrite = 1;       // 1:for write operation
         ma_wb_No_Op.ALU_result = 0;    // will store the result of the alu
         ma_wb_No_Op.isBranch = 0;      // will tell whether to branch or not
+        ma_wb_mainPipeline.nextPCAdd = -1;//flag value
+        ma_wb_mainPipeline.CurrentPCAdd = -1;
     }
 
     currentInstruction = 51;
