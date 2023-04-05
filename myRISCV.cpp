@@ -900,9 +900,6 @@ class Execute
         int op1 = de_ex_mainPipeline.Op1;
         int op2 = de_ex_mainPipeline.Op2;
         int ALU_operation = de_ex_mainPipeline.ALU_Operation;
-        ex_ma_mainPipeline.immU = de_ex_mainPipeline.immU;
-        ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.nextPCAdd.to_ulong();  
-        ex_ma_mainPipeline.CurrentPCAdd = de_ex_mainPipeline.CurrentPCAdd.to_ulong();
         cout << "\n### Execute ###\n\n";
 
         switch (ALU_operation)
@@ -980,8 +977,7 @@ class Execute
                 ex_ma_mainPipeline.isBranch = 1;
                 cout << "Branching done" << endl;
                 cout << "immb=" << de_ex_mainPipeline.immB << endl;
-                /*ex_ma_mainPipeline.*/
-                ex_ma_mainPipeline.nextPCAdd=de_ex_mainPipeline.immB + de_ex_mainPipeline.CurrentPCAdd.to_ulong(); // making pc=pc+immb
+                /*ex_ma_mainPipeline.*/nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong(); // making pc=pc+immb
             }
             else
             {
@@ -1002,7 +998,7 @@ class Execute
             {
                 ex_ma_mainPipeline.isBranch = 1;
                 cout << "Branching done" << endl;
-                /*ex_ma_mainPipeline.*/ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.immB + de_ex_mainPipeline.CurrentPCAdd.to_ulong(); // making pc=pc+immb
+                /*ex_ma_mainPipeline.*/nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong(); // making pc=pc+immb
             }
             break;
 
@@ -1013,7 +1009,7 @@ class Execute
             {
                 ex_ma_mainPipeline.isBranch = 1;
                 cout << "Branching done" << endl;
-                /*ex_ma_mainPipeline.*/ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.immB + ex_ma_mainPipeline.CurrentPCAdd.to_ulong(); // making pc=pc+imm
+                /*ex_ma_mainPipeline.*/nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong(); // making pc=pc+imm
             }
             else
             {
@@ -1031,7 +1027,7 @@ class Execute
             {
                 ex_ma_mainPipeline.isBranch = 1;
                 cout << "Branching done" << endl;
-                /*ex_ma_mainPipeline.*/de_ex_mainPipeline.nextPCAdd = de_ex_mainPipeline.immB + ex_ma_mainPipeline.CurrentPCAdd.to_ulong(); // making pc=pc+immb
+                /*ex_ma_mainPipeline.*/nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong(); // making pc=pc+immb
             }
             else
             {
@@ -1049,7 +1045,7 @@ class Execute
             cout << "Executing JAL" << endl;
             ex_ma_mainPipeline.isBranch = 1;
             // /*ex_ma_mainPipeline.*/nextPCAdd = currentPCAdd.to_ulong() + 4;
-            /*ex_ma_mainPipeline.*/ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.immJ + de_ex_mainPipeline.CurrentPCAdd.to_ulong(); // making pc=pc+immj
+            /*ex_ma_mainPipeline.*/nextPCAdd = de_ex_mainPipeline.immJ + currentPCAdd.to_ulong(); // making pc=pc+immj
             // cout<<"jal worked :"<<nextPCAdd;
             break;
 
@@ -1058,14 +1054,14 @@ class Execute
             cout << "Execute: ADD " << op1 << " and " << op2 << endl;
             ex_ma_mainPipeline.ALU_result = op1 + op2;
             ex_ma_mainPipeline.isBranch = 2;
-            /*ex_ma_mainPipeline.*/ex_ma_mainPipeline.nextPCAdd = op1 + op2; // making pc=pc+immj
+            /*ex_ma_mainPipeline.*/nextPCAdd = op1 + op2; // making pc=pc+immj
             // must give rd in jalr for xi=pc+4
             break;
 
         case 16: // auipc
             cout << "Executing AUIPC" << endl;
             ex_ma_mainPipeline.isBranch = 0;
-            de_ex_mainPipeline.immU = de_ex_mainPipeline.CurrentPCAdd.to_ulong(); + de_ex_mainPipeline.immU;
+            de_ex_mainPipeline.immU = currentPCAdd.to_ulong() + de_ex_mainPipeline.immU;
 
             break;
 
@@ -1074,7 +1070,7 @@ class Execute
         }
 
         ex_ma_mainPipeline.branch_target_select = de_ex_mainPipeline.branch_target_select;
-        // ex_ma_mainPipeline.immU = de_ex_mainPipeline.immU;
+        ex_ma_mainPipeline.immU = de_ex_mainPipeline.immU;
         ex_ma_mainPipeline.Rd = de_ex_mainPipeline.Rd;
         ex_ma_mainPipeline.Result_select = de_ex_mainPipeline.Result_select;
         ex_ma_mainPipeline.mem_OP = de_ex_mainPipeline.mem_OP;
@@ -1082,8 +1078,8 @@ class Execute
         ex_ma_mainPipeline.Store_load_op = de_ex_mainPipeline.Store_load_op;
         ex_ma_mainPipeline.Mem_Op2 = de_ex_mainPipeline.Mem_Op2;
 
-        // ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.nextPCAdd.to_ulong();  //wrong to copy pcs here, as in cases where branching is there, even after updating the next pc, we are again resetting it 
-        // ex_ma_mainPipeline.CurrentPCAdd = de_ex_mainPipeline.CurrentPCAdd.to_ulong();
+        ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.nextPCAdd.to_ulong();
+        ex_ma_mainPipeline.CurrentPCAdd = de_ex_mainPipeline.CurrentPCAdd.to_ulong();
 
         cout << "\n### End Execute ###\n\n";
     }
@@ -1407,7 +1403,6 @@ void RISCv_Processor()
                 Memory_Access d;
                 Write_Back e;
                 Clock++;
-                cout<<"HI"<<Clock<<endl;
             }
         }
     }
