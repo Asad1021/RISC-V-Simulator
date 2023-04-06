@@ -252,6 +252,7 @@ public:
             currentPCAdd_Pipe = currentPCAdd;
             nextPCAdd_Pipe = nextPCAdd;
             cout << "FETCH:Fetch instruction " << currentInstruction << " From address " << currentPCAdd << endl;
+            currentPCAdd = currentPCAdd.to_ulong()+4;
             cout << "\n### End Fetch ###\n\n";
         }
         else
@@ -1489,7 +1490,6 @@ void RISCv_Processor()
             Execute c;
             Decode b;
             Fetch a(1);
-            currentPCAdd = currentPCAdd.to_ulong()+4;
             Clock++;
 
             cout<<"contrh:"<<ControlHazard<<endl;
