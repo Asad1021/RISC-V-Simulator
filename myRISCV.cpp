@@ -15,7 +15,11 @@
 using namespace std;
 
 int Clock = 0; // this will store the No. of Clock cycle used for a program
-bool HaltIf = false, HaltDE = false;
+bool HaltIF = false, HaltDE = false;
+bool DataHazard = false,    // true if there is data hazard
+        ControlHazard = false,  // true if there is control hazard
+        RefreshOprands = false, // true if decode is halted beforea and need to refresh its oprands to procede further
+        PushNoOp = false;       // true if we have to push no op in the ex-ma stage
 
 #pragma region FILE_RELATED_DATA
 void printRF();
@@ -27,11 +31,15 @@ ifstream readFile("input.mc");
 #pragma region INSTRUCTION_RELATED_DATA
 bitset<32> currentPCAdd(0);
 bitset<32> nextPCAdd(0);
+
+bitset<32> currentPCAdd_Pipe(0);
+bitset<32> nextPCAdd_Pipe(0);
+
 bitset<32> currentInstruction;
 bitset<32> *instructions;
 char InstMem[INSTMEM_SIZE];
 
-bool HaltIF;
+// bool HaltIF;
 // if this instruction is read then program exits
 bitset<32> exitInstruction(0xffffffff);
 
@@ -241,6 +249,8 @@ public:
         {
             cout << "\n### Fetch ###\n\n";
             currentInstruction = fetch_instruction(flag);
+            currentPCAdd_Pipe = currentPCAdd;
+            nextPCAdd_Pipe = nextPCAdd;
             cout << "FETCH:Fetch instruction " << currentInstruction << " From address " << currentPCAdd << endl;
             cout << "\n### End Fetch ###\n\n";
         }
@@ -887,8 +897,8 @@ class Decode
         de_ex_mainPipeline.Store_load_op = hs_de_ex.Store_load_op;
         de_ex_mainPipeline.Mem_Op2 = hs_de_ex.Mem_Op2;
 
-        de_ex_mainPipeline.nextPCAdd = currentPCAdd.to_ulong() + 4;
-        de_ex_mainPipeline.CurrentPCAdd = currentPCAdd.to_ulong();
+        de_ex_mainPipeline.nextPCAdd = nextPCAdd_Pipe.to_ulong();
+        de_ex_mainPipeline.CurrentPCAdd = currentPCAdd_Pipe.to_ulong();
     }
 
 public:
@@ -1359,13 +1369,57 @@ void refreshOprands(bool RefreshOprands,bool DataHazard,int Rs1DeEx,int Rs2DeEx)
     }
 }
 
+void printPipeline()
+{
+    cout<<"currentPCAdd_Pipe "<<currentPCAdd_Pipe<<endl;
+    cout<<"nextPCAdd_Pipe "<<nextPCAdd_Pipe<<endl;
+
+    cout<<"de_ex_mainPipeline.Op1 "<<de_ex_mainPipeline.Op1<<endl;
+    cout<<"de_ex_mainPipeline.Op2 "<<de_ex_mainPipeline.Op2<<endl;
+    cout<<"de_ex_mainPipeline.Rd "<<de_ex_mainPipeline.Rd<<endl;
+    cout<<"de_ex_mainPipeline.imm "<<de_ex_mainPipeline.imm <<endl;
+    cout<<"de_ex_mainPipeline.immU "<<de_ex_mainPipeline.immU <<endl;
+    cout<<"de_ex_mainPipeline.immS "<<de_ex_mainPipeline.immS <<endl;
+    cout<<"de_ex_mainPipeline.immJ "<<de_ex_mainPipeline.immJ <<endl;
+    cout<<"de_ex_mainPipeline.immB "<<de_ex_mainPipeline.immB <<endl;
+    cout<<"de_ex_mainPipeline.branch_target_select "<<de_ex_mainPipeline.branch_target_select<<endl;
+    cout<<"de_ex_mainPipeline.Result_select "<<de_ex_mainPipeline.Result_select<<endl;
+    cout<<"de_ex_mainPipeline.ALU_Operation "<<de_ex_mainPipeline.ALU_Operation<<endl;
+    cout<<"de_ex_mainPipeline.mem_OP "<<de_ex_mainPipeline.mem_OP<<endl;
+    cout<<"de_ex_mainPipeline.RFWrite "<<de_ex_mainPipeline.RFWrite<<endl;
+    cout<<"de_ex_mainPipeline.Store_load_op "<<de_ex_mainPipeline.Store_load_op <<endl;
+    cout<<"de_ex_mainPipeline.Mem_Op2  "<<de_ex_mainPipeline.Mem_Op2 <<endl;
+    cout<<"de_ex_mainPipeline.nextPCAdd "<<de_ex_mainPipeline.nextPCAdd <<endl;
+    cout<<"de_ex_mainPipeline.CurrentPCAdd "<<de_ex_mainPipeline.CurrentPCAdd <<endl;
+    cout<<"de_ex_mainPipeline.InstType "<<de_ex_mainPipeline.InstType<<endl;
+
+
+    cout<<"ex_ma_mainPipeline.isBranch "<<ex_ma_mainPipeline.isBranch <<endl ;
+    cout<<"ex_ma_mainPipeline.ALU_result "<<ex_ma_mainPipeline.ALU_result <<endl ;
+    cout<<"ex_ma_mainPipeline.Rd "<<ex_ma_mainPipeline.Rd <<endl ;                   
+    cout<<"ex_ma_mainPipeline.immU "<<ex_ma_mainPipeline.immU <<endl ;                 
+    cout<<"ex_ma_mainPipeline.branch_target_select "<<ex_ma_mainPipeline.branch_target_select <<endl ;
+    cout<<"ex_ma_mainPipeline.Result_select "<<ex_ma_mainPipeline.Result_select <<endl ;        
+    cout<<"ex_ma_mainPipeline.mem_OP "<<ex_ma_mainPipeline.mem_OP <<endl ;               
+    cout<<"ex_ma_mainPipeline.RFWrite "<<ex_ma_mainPipeline.RFWrite <<endl ;              
+    cout<<"ex_ma_mainPipeline.Store_load_op "<<ex_ma_mainPipeline.Store_load_op <<endl ;        
+    cout<<"ex_ma_mainPipeline.Mem_Op2 "<<ex_ma_mainPipeline.Mem_Op2 <<endl ;              
+    cout<<"ex_ma_mainPipeline.nextPCAdd "<<ex_ma_mainPipeline.nextPCAdd<<endl;
+    cout<<"ex_ma_mainPipeline.CurrentPCAdd "<<ex_ma_mainPipeline.CurrentPCAdd<<endl;
+
+
+    cout<<"ma_wb_mainPipeline.loaded_mem "<<ma_wb_mainPipeline.loaded_mem<<endl;
+    cout<<"ma_wb_mainPipeline.Rd "<<ma_wb_mainPipeline.Rd<<endl;
+    cout<<"ma_wb_mainPipeline.immU "<<ma_wb_mainPipeline.immU<<endl;
+    cout<<"ma_wb_mainPipeline.Result_select "<<ma_wb_mainPipeline.Result_select<<endl;
+    cout<<"ma_wb_mainPipeline.RFWrite "<<ma_wb_mainPipeline.RFWrite<<endl;
+    cout<<"ma_wb_mainPipeline.ALU_result "<<ma_wb_mainPipeline.ALU_result<<endl;
+    cout<<"ma_wb_mainPipeline.isBranch "<<ma_wb_mainPipeline.isBranch<<endl;
+    cout<<"ma_wb_mainPipeline.nextPCAdd "<<ma_wb_mainPipeline.nextPCAdd<<endl;
+    cout<<"ma_wb_mainPipeline.CurrentPCAdd "<<ma_wb_mainPipeline.CurrentPCAdd<<endl;
+}
 void resolveHazards()
 {
-
-    bool DataHazard = false,    // true if there is data hazard
-        ControlHazard = false,  // true if there is control hazard
-        RefreshOprands = false, // true if decode is halted beforea and need to refresh its oprands to procede further
-        PushNoOp = false;       // true if we have to push no op in the ex-ma stage
 
     int Rs1DeEx = de_ex_mainPipeline.Rs1; // Rs1 of de-ex stage
     int Rs2DeEx = de_ex_mainPipeline.Rs2; // Rs2 of de-ex stage
@@ -1381,9 +1435,11 @@ void resolveHazards()
         RefreshOprands = true;
     }
 
-    refreshOprands(DataHazard,RefreshOprands,Rs1DeEx,Rs2DeEx);//refreshes the oprands
-
-    if((ex_ma_mainPipeline.nextPCAdd.to_ulong()!=-1/*Is valid*/)&&(ex_ma_mainPipeline.nextPCAdd.to_ulong() !=(currentPCAdd.to_ulong())&&(!DataHazard)))
+    refreshOprands(RefreshOprands,DataHazard,Rs1DeEx,Rs2DeEx);//refreshes the oprands
+    // cout<<"Hello";
+    cout<<endl<<"This is the value of next pc: "<<ex_ma_mainPipeline.nextPCAdd.to_ulong()<<endl;
+    cout<<endl<<"This is the value of curr pc: "<<ex_ma_mainPipeline.CurrentPCAdd.to_ulong()<<endl;
+    if((!((ex_ma_mainPipeline.nextPCAdd.to_ulong()!=-1)||(ex_ma_mainPipeline.CurrentPCAdd.to_ulong()!=-1)/*Is valid*/))&&(ex_ma_mainPipeline.nextPCAdd.to_ulong() !=(currentPCAdd.to_ulong())&&(!DataHazard)))
     {
         ControlHazard = true;
     }
@@ -1396,27 +1452,32 @@ void resolveHazards()
 
     if (DataHazard && (!ControlHazard)) // Only dta hazard
     {
-        HaltDE = true;
-        HaltIf = true;
-        PushNoOp = true; // no op to ex-ma stage in the next cycle
+        HaltDE = true;//halting DE for the next cycle
+        HaltIF = true;//halting IF for the next cycle
+        PushNoOp = true; // pushing no op to ex-ma stage in the next cycle
+        DataHazard=false;//resetting the flag
     }
     else if (ControlHazard && (!DataHazard)) // Only Control hazard
     {
         currentInstruction = 51;//noOp
         de_ex_mainPipeline = de_ex_No_Op;
-        currentPCAdd = ex_ma_mainPipeline.nextPCAdd;
-        ControlHazard = false;
+        currentPCAdd = ex_ma_mainPipeline.nextPCAdd;//next pc taken from the ex stage
+        ControlHazard = false;//resetting the flag
     }
-    else // Both at the same time
+    else if(DataHazard&&ControlHazard) // Both at the same time
     {
         //case is not possible
         cout<<"Unexpected Error Occured";
+    }
+    else
+    {
+        cout<<"NO data and Control hazard";
     }
 }
 
 void RISCv_Processor()
 {
-    bool ispipeLine = false;
+    bool ispipeLine = true;
 
     RF[2] = MEMORY_SIZE - 0xc;
     while (1)
@@ -1430,7 +1491,14 @@ void RISCv_Processor()
             Fetch a(1);
             currentPCAdd = currentPCAdd.to_ulong()+4;
             Clock++;
+
+            cout<<"contrh:"<<ControlHazard<<endl;
+            cout<<"dataH:"<<DataHazard<<endl;
+            cout<<"refOP:"<<RefreshOprands<<endl;
+
             resolveHazards();
+            printPipeline();
+            cout<<endl<<endl<<endl<<"End of cycle:"<<Clock<<endl<<endl<<endl;
         }
         else
         {
@@ -1502,6 +1570,8 @@ void init_NoOps()
         ma_wb_mainPipeline.CurrentPCAdd = -1;
     }
 
+    currentPCAdd_Pipe = -1;
+    nextPCAdd_Pipe = -1;
     currentInstruction = 51;
     de_ex_mainPipeline = de_ex_No_Op;
     ex_ma_mainPipeline = ex_ma_No_Op;
