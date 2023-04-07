@@ -918,7 +918,59 @@ typedef struct BranchTargetBuffer
     bool taken;
     bool valid;
 }B_T_B;
+
 B_T_B BTB[1000];
+int BTB_index=0;
+void btb_nuller(B_T_B BTB[],int n){
+//this will flush everything out of our Branch target buffer
+
+for(int i=0;i<n;i++){
+    BTB[i].currentPCAdd=0;
+    BTB[i].predictedAdd=0;
+    BTB[i].taken=false;
+}
+}
+int btb_traversor(bitset<32>pc){
+    //will check if a particular pc is there or not in the branch target buffer
+    int i=0;
+    int flag=0;
+   
+   
+    for(int i=0;i<1000;i++){
+        if(BTB[i].currentPCAdd==pc){
+            flag=1;
+        }
+        i++;
+        bitset<32>check_pc=BTB[i].currentPCAdd;
+    }
+    return flag;
+}
+void btb_runner(bitset<32> pc, bitset<32>ta,bool taken){   
+    //will add suitable entries to our BTB ensuring only discrete values crept in  
+    int flag=btb_traversor(pc);
+    if(flag==0){    
+        BTB[BTB_index].currentPCAdd=pc;
+        BTB[BTB_index].predictedAdd= ta;
+        BTB[BTB_index].taken=taken;
+        BTB_index++;
+    }
+    else{
+        return;
+    }
+
+}
+void btb_printer(B_T_B BTB[],int n){
+//will print our Branch Target Buffer
+
+for(int i=0;i<n;i++){
+   cout<<BTB[i].currentPCAdd<<endl;
+   cout<< BTB[i].predictedAdd<<endl;
+   cout<< BTB[i].taken<<endl;
+   cout<<endl;
+   cout<<endl;
+}
+}
+
 
 
 class Execute
@@ -1027,6 +1079,7 @@ class Execute
                 cout << "Branching done" << endl;
                 cout << "immb=" << de_ex_mainPipeline.immB << endl;
                 ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong();
+                btb_runner(de_ex_mainPipeline.CurrentPCAdd, ex_ma_mainPipeline.nextPCAdd,1);
             }
             else
             {
@@ -1048,6 +1101,7 @@ class Execute
                 ex_ma_mainPipeline.isBranch = 1;
                 cout << "Branching done" << endl;
                 ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong();
+                btb_runner(de_ex_mainPipeline.CurrentPCAdd, ex_ma_mainPipeline.nextPCAdd,1);
             }
             break;
 
@@ -1059,6 +1113,7 @@ class Execute
                 ex_ma_mainPipeline.isBranch = 1;
                 cout << "Branching done" << endl;
                 ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong();
+                btb_runner(de_ex_mainPipeline.CurrentPCAdd, ex_ma_mainPipeline.nextPCAdd,1);
             }
             else
             {
@@ -1077,6 +1132,7 @@ class Execute
                 ex_ma_mainPipeline.isBranch = 1;
                 cout << "Branching done" << endl;
                 ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.immB + currentPCAdd.to_ulong();
+                btb_runner(de_ex_mainPipeline.CurrentPCAdd, ex_ma_mainPipeline.nextPCAdd,1);
             }
             else
             {
@@ -1094,6 +1150,7 @@ class Execute
             cout << "Executing JAL" << endl;
             ex_ma_mainPipeline.isBranch = 1;
             ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.immJ + currentPCAdd.to_ulong();
+            btb_runner(de_ex_mainPipeline.CurrentPCAdd, ex_ma_mainPipeline.nextPCAdd,1);
             // cout<<"jal worked :"<<nextPCAdd;
             break;
 
@@ -1103,6 +1160,7 @@ class Execute
             ex_ma_mainPipeline.ALU_result = op1 + op2;//op1= rs1 and op2 = imm
             ex_ma_mainPipeline.isBranch = 2;
             ex_ma_mainPipeline.nextPCAdd = op1 + op2;
+            btb_runner(de_ex_mainPipeline.CurrentPCAdd,ex_ma_mainPipeline.ALU_result,1);
             // must give rd in jalr for xi=pc+4
             break;
 
@@ -1579,7 +1637,7 @@ void init_NoOps()
 }
 
 int main()
-{
+{   btb_nuller(BTB,1000);
     init_NoOps();
     make_file();
     RISCv_Processor();
