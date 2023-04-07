@@ -930,7 +930,7 @@ for(int i=0;i<n;i++){
     BTB[i].taken=false;
 }
 }
-int btb_traversor(bitset<32>pc){
+int btb_traversor(bitset<32>pc,bool taken){
     //will check if a particular pc is there or not in the branch target buffer
     int i=0;
     int flag=0;
@@ -938,7 +938,12 @@ int btb_traversor(bitset<32>pc){
    
     for(int i=0;i<1000;i++){
         if(BTB[i].currentPCAdd==pc){
+            if((BTB[i].taken)==taken){
             flag=1;
+            }
+            else{
+                flag=-1;
+            }
         }
         i++;
         bitset<32>check_pc=BTB[i].currentPCAdd;
@@ -947,12 +952,15 @@ int btb_traversor(bitset<32>pc){
 }
 void btb_runner(bitset<32> pc, bitset<32>ta,bool taken){   
     //will add suitable entries to our BTB ensuring only discrete values crept in  
-    int flag=btb_traversor(pc);
+    int flag=btb_traversor(pc,taken);
     if(flag==0){    
         BTB[BTB_index].currentPCAdd=pc;
         BTB[BTB_index].predictedAdd= ta;
         BTB[BTB_index].taken=taken;
         BTB_index++;
+    }
+    else if (flag==-1){
+        BTB[BTB_index].taken=taken;
     }
     else{
         return;
@@ -1085,6 +1093,7 @@ class Execute
             {
                 ex_ma_mainPipeline.isBranch = 0;
                 cout << "No branching" << endl;
+                 btb_runner(de_ex_mainPipeline.CurrentPCAdd, ex_ma_mainPipeline.nextPCAdd,0);
             }
             break;
 
@@ -1094,6 +1103,7 @@ class Execute
             if (ex_ma_mainPipeline.ALU_result == 0)
             {
                 ex_ma_mainPipeline.isBranch = 0;
+                btb_runner(de_ex_mainPipeline.CurrentPCAdd, ex_ma_mainPipeline.nextPCAdd,0);
                 cout << "No branching" << endl;
             }
             else
@@ -1118,6 +1128,7 @@ class Execute
             else
             {
                 ex_ma_mainPipeline.isBranch = 0;
+                btb_runner(de_ex_mainPipeline.CurrentPCAdd, ex_ma_mainPipeline.nextPCAdd,0);
                 cout << "No branching" << endl;
             }
             break;
@@ -1137,6 +1148,7 @@ class Execute
             else
             {
                 ex_ma_mainPipeline.isBranch = 0;
+                btb_runner(de_ex_mainPipeline.CurrentPCAdd, ex_ma_mainPipeline.nextPCAdd,0);
                 cout << "No branching" << endl;
             }
             break;
