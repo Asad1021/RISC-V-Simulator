@@ -172,8 +172,10 @@ class Fetch
 
             tempRead >> hex_str;
         }
-
-        bitset<32> currentInstruction = HexStringToBitset(hex_str);
+        int offsetPC = currentPCAdd.to_ulong();
+        int *num = (int*)(InstMem + offsetPC);
+        bitset<32> currentInstruction(*num);
+        // bitset<32> currentInstruction = HexStringToBitset(hex_str);
         // cout<<endl<<"READING INSTRUCTION "<<hex_str<<endl;
 
         if (currentInstruction == exitInstruction)
