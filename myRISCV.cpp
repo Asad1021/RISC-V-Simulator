@@ -9,10 +9,103 @@
 
 #define MEMORY_SIZE 120000
 #define INSTMEM_SIZE 12000
+#define BUFFER_SIZE 120
 // immb conversion is always a unsigned operation hence we have to convert it to signed one by using typecast
 // immB+PC; immB=immb.to_ulong();//unsigned
 
 using namespace std;
+typedef struct BranchTargetBuffer
+{   bitset<32> currentPCAdd;
+    bitset<32> predictedAdd;
+    bool taken;
+    bool valid;
+}B_T_B;
+
+B_T_B BTB[BUFFER_SIZE];
+int BTB_index=0;
+
+void btb_nuller(B_T_B BTB[],int n){
+//this will flush everything out of our Branch target buffer
+
+for(int i=0;i<n;i++){
+    BTB[i].currentPCAdd=0;
+    BTB[i].predictedAdd=0;
+    BTB[i].taken=false;
+}
+}
+int btb_traversor(bitset<32>pc,bool taken){
+    //will check if a particular pc is there or not in the branch target buffer
+    int i=0;
+    int flag=0;
+   
+   
+    for(int i=0;i<BUFFER_SIZE;i++){
+        if(BTB[i].currentPCAdd==pc){
+            if((BTB[i].taken)==taken){
+            flag=1;
+            }
+            else{
+                flag=-1;
+            }
+        }
+        i++;
+        bitset<32>check_pc=BTB[i].currentPCAdd;
+    }
+    return flag;
+}
+void btb_runner(bitset<32> pc, bitset<32>ta,bool taken){   
+    //will add suitable entries to our BTB ensuring only discrete values crept in  
+    int flag=btb_traversor(pc,taken);
+    if(flag==0){    
+        BTB[BTB_index].currentPCAdd=pc;
+        BTB[BTB_index].predictedAdd= ta;
+        BTB[BTB_index].taken=taken;
+        BTB_index++;
+    }
+    else if (flag==-1){
+        BTB[BTB_index].taken=taken;
+    }
+    else{
+        return;
+    }
+
+}
+void btb_printer(B_T_B BTB[],int n){
+//will print our Branch Target Buffer
+cout<<endl<<endl;
+cout<<"                                         BRANCH TARGET BUFFER"<<endl<<endl;
+cout<<"_________________________________________________________________________________________"<<endl<<endl;
+cout<<"|              PC                  |          Target Address          | Taken/Not Taken |"<<endl;
+for(int i=0;i<n;i++){
+    cout<<"| "<<BTB[i].currentPCAdd<<" | ";
+    cout<< BTB[i].predictedAdd<<" | ";
+    cout<<"       " <<BTB[i].taken <<"        |";
+    cout<<endl;
+}
+cout<<"_________________________________________________________________________________________"<<endl;
+}
+
+bitset<32> predicted_address(bitset<32>pc){
+    //this will give predicted address when the pc is in the BTB, else will give -1, indicating that given pc was not found in the buffer
+    int flag=0;
+    for(int i=0;i<BUFFER_SIZE;i++){
+        if(BTB[i].currentPCAdd==pc){
+            if((BTB[i].taken)==1){
+            flag=1;
+            return BTB[i].predictedAdd;
+            }
+            else{
+                return -1;
+            }
+        }
+        else{
+            return -1;
+        }
+        bitset<32>check_pc=BTB[i].currentPCAdd;
+    }
+    return flag;
+}
+
 
 int Clock = 0; // this will store the No. of Clock cycle used for a program
 bool HaltIF = false, HaltDE = false;
@@ -46,6 +139,7 @@ bitset<32> exitInstruction(0xffffffff);
 
 // stores the pc + 4
 #pragma endregion INSTRUCTION_RELATED_DATA
+bitset<32> predicted_address(bitset<32>);
 
 #pragma region DECODE_RELATED_DATA
 typedef struct if_de_hs_de_ex
@@ -176,8 +270,16 @@ class Fetch
         int offsetPC = currentPCAdd.to_ulong();
         int *num = (int*)(InstMem + offsetPC);
         bitset<32> currentInstruction(*num);
+
         // bitset<32> currentInstruction = HexStringToBitset(hex_str);
         // cout<<endl<<"READING INSTRUCTION "<<hex_str<<endl;
+        bitset<32> returnPredictedAddress = predicted_address(currentInstruction);
+        bitset<32> minusOne(-1);
+        if(returnPredictedAddress != minusOne)
+        {
+            currentPCAdd = returnPredictedAddress;
+            return currentInstruction;
+        }
 
         if (currentInstruction == exitInstruction)
         {
@@ -216,11 +318,12 @@ class Fetch
             printRF();
 
             cout << "No. of Clock cycle used: " << Clock;
+            btb_printer(BTB,BUFFER_SIZE);
 
             exit(0);
         }
         // stoul converts string of type 0x012312 to its decimal value
-
+        
         return currentInstruction;
     }
     string read()
@@ -919,96 +1022,7 @@ public:
     }
 };
 
-typedef struct BranchTargetBuffer
-{   bitset<32> currentPCAdd;
-    bitset<32> predictedAdd;
-    bool taken;
-    bool valid;
-}B_T_B;
 
-B_T_B BTB[1000];
-int BTB_index=0;
-void btb_nuller(B_T_B BTB[],int n){
-//this will flush everything out of our Branch target buffer
-
-for(int i=0;i<n;i++){
-    BTB[i].currentPCAdd=0;
-    BTB[i].predictedAdd=0;
-    BTB[i].taken=false;
-}
-}
-int btb_traversor(bitset<32>pc,bool taken){
-    //will check if a particular pc is there or not in the branch target buffer
-    int i=0;
-    int flag=0;
-   
-   
-    for(int i=0;i<1000;i++){
-        if(BTB[i].currentPCAdd==pc){
-            if((BTB[i].taken)==taken){
-            flag=1;
-            }
-            else{
-                flag=-1;
-            }
-        }
-        i++;
-        bitset<32>check_pc=BTB[i].currentPCAdd;
-    }
-    return flag;
-}
-void btb_runner(bitset<32> pc, bitset<32>ta,bool taken){   
-    //will add suitable entries to our BTB ensuring only discrete values crept in  
-    int flag=btb_traversor(pc,taken);
-    if(flag==0){    
-        BTB[BTB_index].currentPCAdd=pc;
-        BTB[BTB_index].predictedAdd= ta;
-        BTB[BTB_index].taken=taken;
-        BTB_index++;
-    }
-    else if (flag==-1){
-        BTB[BTB_index].taken=taken;
-    }
-    else{
-        return;
-    }
-
-}
-void btb_printer(B_T_B BTB[],int n){
-//will print our Branch Target Buffer
-cout<<endl<<endl;
-cout<<"                                         BRANCH TARGET BUFFER"<<endl<<endl;
-cout<<"_________________________________________________________________________________________"<<endl<<endl;
-cout<<"|              PC                  |          Target Address          | Taken/Not Taken |"<<endl;
-for(int i=0;i<n;i++){
-    cout<<"| "<<BTB[i].currentPCAdd<<" | ";
-    cout<< BTB[i].predictedAdd<<" | ";
-    cout<<"       " <<BTB[i].taken <<"        |";
-    cout<<endl;
-}
-cout<<"_________________________________________________________________________________________"<<endl;
-}
-
-bitset<32> predicted_address(bitset<32>pc){
-    //this will give predicted address when the pc is in the BTB, else will give -1, indicating that given pc was not found in the buffer
-    int flag=0;
-    for(int i=0;i<1000;i++){
-        if(BTB[i].currentPCAdd==pc){
-            if((BTB[i].taken)==1){
-            flag=1;
-            return BTB[i].predictedAdd;
-            }
-            else{
-                return -1;
-            }
-        }
-        else{
-            return -1;
-        }
-        bitset<32>check_pc=BTB[i].currentPCAdd;
-    }
-    return flag;
-}
 
 
 class Execute
@@ -1707,9 +1721,11 @@ void init_NoOps()
 }
 
 int main()
-{   btb_nuller(BTB,1000);
+{   
+    // btb_nuller(BTB,1000);
     init_NoOps();
     make_file();
     RISCv_Processor();
+    // btb_printer(BTB,1000);
     return 0;
 }
