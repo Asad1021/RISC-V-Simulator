@@ -971,16 +971,39 @@ void btb_runner(bitset<32> pc, bitset<32>ta,bool taken){
 }
 void btb_printer(B_T_B BTB[],int n){
 //will print our Branch Target Buffer
-
+cout<<endl<<endl;
+cout<<"                                         BRANCH TARGET BUFFER"<<endl<<endl;
+cout<<"_________________________________________________________________________________________"<<endl<<endl;
+cout<<"|              PC                  |          Target Address          | Taken/Not Taken |"<<endl;
 for(int i=0;i<n;i++){
-   cout<<BTB[i].currentPCAdd<<endl;
-   cout<< BTB[i].predictedAdd<<endl;
-   cout<< BTB[i].taken<<endl;
-   cout<<endl;
-   cout<<endl;
+    cout<<"| "<<BTB[i].currentPCAdd<<" | ";
+    cout<< BTB[i].predictedAdd<<" | ";
+    cout<<"       " <<BTB[i].taken <<"        |";
+    cout<<endl;
 }
+cout<<"_________________________________________________________________________________________"<<endl;
 }
 
+bitset<32> predicted_address(bitset<32>pc){
+    //this will give predicted address when the pc is in the BTB, else will give -1, indicating that given pc was not found in the buffer
+    int flag=0;
+    for(int i=0;i<1000;i++){
+        if(BTB[i].currentPCAdd==pc){
+            if((BTB[i].taken)==1){
+            flag=1;
+            return BTB[i].predictedAdd;
+            }
+            else{
+                return -1;
+            }
+        }
+        else{
+            return -1;
+        }
+        bitset<32>check_pc=BTB[i].currentPCAdd;
+    }
+    return flag;
+}
 
 
 class Execute
