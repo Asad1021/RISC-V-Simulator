@@ -113,7 +113,12 @@ bool DataHazard = false,    // true if there is data hazard
         ControlHazard = false,  // true if there is control hazard
         RefreshOprands = false, // true if decode is halted beforea and need to refresh its oprands to procede further
         PushNoOp = false;       // true if we have to push no op in the ex-ma stage
+
 bool ispipeLine = false;
+bool printRegFile;
+bool printPipe;
+
+int No_Stals=0,No_Lw_Sw=0,No_ALU_inst=0,No_Ctrl_Inst=0,No_Data_Hazard=0,No_Control_Hazard=0,No_stals_due_to_dataHazard=0,No_stals_due_to_ctrlHazard=0;
 
 #pragma region FILE_RELATED_DATA
 void printRF();
@@ -317,8 +322,21 @@ class Fetch
 
             printRF();
 
-            cout << "No. of Clock cycle used: " << Clock;
             btb_printer(BTB,BUFFER_SIZE);
+            cout<<endl<<endl;
+            cout << "Total number of cycles: " << Clock<<endl;
+            cout << "Total instructions executed: " << (Clock-No_Stals)<<endl;
+            cout << "CPI: " << (((float)Clock)/(float)(Clock-No_Stals))<<endl;
+            cout << "Number of Data-transfer (load and store) instructions executed: " << No_Lw_Sw<<endl;
+            cout << "Number of ALU instructions executed: " << No_ALU_inst<<endl;
+            cout << "Number of Control instructions executed: " << No_Ctrl_Inst<<endl;
+            cout << "Number of stalls/bubbles in the pipeline: " << No_Stals<<endl;
+            cout << "Number of data hazards: " << No_Data_Hazard<<endl;
+            cout << "Number of control hazards: " << No_Control_Hazard<<endl;
+            cout << "Number of stalls due to data hazards: " << No_stals_due_to_dataHazard<<endl;
+            cout << "Number of stalls due to control hazards: " << No_stals_due_to_ctrlHazard<<endl;
+
+            
 
             exit(0);
         }
@@ -1066,48 +1084,56 @@ class Execute
             cout << "Execute: ADD " << op1 << " and " << op2 << endl;
             ex_ma_mainPipeline.ALU_result = op1 + op2;
             ex_ma_mainPipeline.isBranch = 0;
+            No_ALU_inst++;
             break;
         case 1: // it will perform subtraction in ALU
             cout << "ALU performing subtraction operation" << endl;
             cout << "Execute: SUB " << op1 << " and " << op2 << endl;
             ex_ma_mainPipeline.ALU_result = op1 - op2;
             ex_ma_mainPipeline.isBranch = 0;
+            No_ALU_inst++;
             break;
         case 2: // it will perform logical XOR in ALU
             cout << "ALU performing XOR operation" << endl;
             cout << "Execute: XOR " << op1 << " and " << op2 << endl;
             ex_ma_mainPipeline.ALU_result = op1 ^ op2;
             ex_ma_mainPipeline.isBranch = 0;
+            No_ALU_inst++;
             break;
         case 3: // it will perform logical OR in ALU
             cout << "ALU performing OR operation" << endl;
             cout << "Execute: OR " << op1 << " and " << op2 << endl;
             ex_ma_mainPipeline.ALU_result = op1 | op2;
             ex_ma_mainPipeline.isBranch = 0;
+            No_ALU_inst++;
             break;
         case 4: // it will perform logical AND in ALU
             cout << "ALU performing AND operation" << endl;
             cout << "Execute: AND " << op1 << " and " << op2 << endl;
             ex_ma_mainPipeline.ALU_result = op1 & op2;
             ex_ma_mainPipeline.isBranch = 0;
+            No_ALU_inst++;
             break;
         case 5: // it will perform shift left logical in ALU
             cout << "ALU performing logical left shift operation" << endl;
             cout << "Execute: SLL " << op1 << " and " << op2 << endl;
             ex_ma_mainPipeline.ALU_result = op1 << op2;
             ex_ma_mainPipeline.isBranch = 0;
+            No_ALU_inst++;
             break;
         case 6: // it will perform shift right logical in ALU
             ex_ma_mainPipeline.ALU_result = srl(op1, op2);
             cout << "ALU performing logical right shift operation" << endl;
             cout << "Execute: SRL " << op1 << " and " << op2 << endl;
             ex_ma_mainPipeline.isBranch = 0;
+            No_ALU_inst++;
             break;
         case 7: // it will perform shift right arithmetic in ALU
             cout << "ALU performing arithmetic right shift operation" << endl;
             cout << "Execute: SRA " << op1 << " and " << op2 << endl;
             ex_ma_mainPipeline.ALU_result = op1 >> op2;
             ex_ma_mainPipeline.isBranch = 0;
+            No_ALU_inst++;
             break;
 
         case 8: // it will perform set less than in ALU
@@ -1121,6 +1147,7 @@ class Execute
                 ex_ma_mainPipeline.ALU_result = 0;
 
             ex_ma_mainPipeline.isBranch = 0;
+            No_ALU_inst++;
             break;
             // for branching, we are assigning 0 for no branch, 1 for branch target adress, and 2 for ALU result, i.e for JALR
 
@@ -1145,6 +1172,7 @@ class Execute
                 cout << "No branching" << endl;
                  btb_runner(de_ex_mainPipeline.CurrentPCAdd, ex_ma_mainPipeline.nextPCAdd,0);
             }
+            No_Ctrl_Inst++;
             break;
 
         case 10: // will check for bne
@@ -1165,6 +1193,7 @@ class Execute
                 cout<<"Next Pc updated to: "<<ex_ma_mainPipeline.nextPCAdd.to_ulong()<<endl;
                 btb_runner(de_ex_mainPipeline.CurrentPCAdd, ex_ma_mainPipeline.nextPCAdd,1);
             }
+            No_Ctrl_Inst++;
             break;
 
         case 11: // will check for blt
@@ -1185,6 +1214,7 @@ class Execute
                 btb_runner(de_ex_mainPipeline.CurrentPCAdd, ex_ma_mainPipeline.nextPCAdd,0);
                 cout << "No branching" << endl;
             }
+            No_Ctrl_Inst++;
             break;
 
         case 12: // will check for bge
@@ -1207,6 +1237,7 @@ class Execute
                 btb_runner(de_ex_mainPipeline.CurrentPCAdd, ex_ma_mainPipeline.nextPCAdd,0);
                 cout << "No branching" << endl;
             }
+            No_Ctrl_Inst++;
             break;
 
         case 13: // lui
@@ -1223,6 +1254,8 @@ class Execute
             cout<<"Next Pc updated to: "<<ex_ma_mainPipeline.nextPCAdd.to_ulong()<<endl;
             btb_runner(de_ex_mainPipeline.CurrentPCAdd, ex_ma_mainPipeline.nextPCAdd,1);
             // cout<<"jal worked :"<<nextPCAdd;
+            No_ALU_inst++;
+            No_Ctrl_Inst++;
             break;
 
         case 15: // jalr
@@ -1234,6 +1267,8 @@ class Execute
             cout<<"Next Pc updated to: "<<ex_ma_mainPipeline.nextPCAdd.to_ulong()<<endl;
             btb_runner(de_ex_mainPipeline.CurrentPCAdd,ex_ma_mainPipeline.ALU_result,1);
             // must give rd in jalr for xi=pc+4
+            No_ALU_inst++;
+            No_Ctrl_Inst++;
             break;
 
         case 16: // auipc
@@ -1291,6 +1326,7 @@ class Memory_Access
 
         case 1:
         { // write
+            No_Lw_Sw++;
             switch (storeloadop)
             {
             case 0:
@@ -1313,6 +1349,7 @@ class Memory_Access
 
         case 2:
         { // read (load) pending
+            No_Lw_Sw++;
             switch (storeloadop)
             {
             case 0:
@@ -1556,6 +1593,7 @@ void resolveHazards()
     {
         ex_ma_mainPipeline = ex_ma_No_Op;
         PushNoOp = false;
+        No_Stals++;
     }
 
     int Rs1DeEx = de_ex_mainPipeline.Rs1; // Rs1 of de-ex stage
@@ -1564,6 +1602,8 @@ void resolveHazards()
     if((ex_ma_mainPipeline.isBranch==1)||(ex_ma_mainPipeline.isBranch==2))
     {
         ControlHazard = true;
+        No_Control_Hazard++;
+        No_stals_due_to_ctrlHazard++;
     }
 
     if(!ControlHazard)//checking only if there is no ctrl hazard
@@ -1572,11 +1612,15 @@ void resolveHazards()
         {
             DataHazard = true;
             RefreshOprands = true;
+            No_Data_Hazard++;
+            No_stals_due_to_dataHazard++;
         }
         if (((Rs2DeEx > 0) && ((Rs2DeEx == ex_ma_mainPipeline.Rd) || (Rs2DeEx == ma_wb_mainPipeline.Rd)))) // hazard due to Rs2
         {
             DataHazard = true;
             RefreshOprands = true;
+            No_Data_Hazard++;
+            No_stals_due_to_dataHazard++;
         }
     }
     refreshOprands(RefreshOprands,DataHazard,Rs1DeEx,Rs2DeEx);//refreshes the oprands
@@ -1616,7 +1660,7 @@ void resolveHazards()
 
 void RISCv_Processor()
 {
-    ispipeLine = true;
+    // ispipeLine = true;
 
     RF[2] = MEMORY_SIZE - 0xc;
     while (1)
@@ -1635,8 +1679,15 @@ void RISCv_Processor()
             cout<<"refOP:"<<RefreshOprands<<endl;
 
             resolveHazards();
-            printPipeline();
-            cout<<endl<<endl<<endl<<"End of cycle:"<<Clock<<endl<<endl<<endl;
+
+            if(printRegFile)
+            printRF();
+
+            if(printPipe)
+            {
+                printPipeline();
+                cout<<endl<<endl<<endl<<"End of cycle:"<<Clock<<endl<<endl<<endl;
+            }
         }
         else
         {
@@ -1649,6 +1700,9 @@ void RISCv_Processor()
                 Write_Back e;
                 currentPCAdd = ex_ma_mainPipeline.nextPCAdd.to_ulong();//update PC
                 Clock++;
+
+                if(printRegFile)
+                printRF();
             }
         }
     }
@@ -1723,6 +1777,17 @@ void init_NoOps()
 int main()
 {   
     // btb_nuller(BTB,1000);
+    cout<<"enter 1 for enable pipeline else 0:";
+    cin>>ispipeLine;
+
+    cout<<"enter 1 for enable printing RF at the end of each cycle else 0:";
+    cin>>printRegFile;
+
+    cout<<"enter 1 for enable printing PipeLine at the end of each cycle else 0:";
+    cin>>printPipe;
+
+    
+
     init_NoOps();
     make_file();
     RISCv_Processor();

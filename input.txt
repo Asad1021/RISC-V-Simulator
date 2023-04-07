@@ -9,3 +9,5 @@
 00000033
 00000033
 FFFFFFFF
+
+int No_Stals=0,No_Lw_Sw=0,No_ALU_inst=0,No_Ctrl_Inst=0,No_Data_Hazard=0,No_Control_Hazard=0,No_stals_due_to_dataHazard=0,No_stals_due_to_ctrlHazard=0;
