@@ -38,14 +38,13 @@ int btb_traversor(bitset<32>pc,bool taken){
     int i=0;
     int flag=0;
    
-   
     for(int i=0;i<BUFFER_SIZE;i++){
-        if(BTB[i].currentPCAdd==pc){
+        if(BTB[i].currentPCAdd==pc){  //we have found the same pc in our BTB
             if((BTB[i].taken)==taken){
-            flag=1;
+            flag=1;                   //we have got a instruction which has been taken
             }
             else{
-                flag=-1;
+                flag=-1;              //found but not taken
             }
         }
         i++;
@@ -56,7 +55,7 @@ int btb_traversor(bitset<32>pc,bool taken){
 void btb_runner(bitset<32> pc, bitset<32>ta,bool taken){   
     //will add suitable entries to our BTB ensuring only discrete values crept in  
     int flag=btb_traversor(pc,taken);
-    if(flag==0){    
+    if(flag==0 && pc!=-1){    //pc was not there in BTB, so update the BTB
         BTB[BTB_index].currentPCAdd=pc;
         BTB[BTB_index].predictedAdd= ta;
         BTB[BTB_index].taken=taken;
@@ -66,7 +65,7 @@ void btb_runner(bitset<32> pc, bitset<32>ta,bool taken){
         BTB[BTB_index].taken=taken;
     }
     else{
-        return;
+        return;                 //we are not updating our BTB
     }
 
 }
