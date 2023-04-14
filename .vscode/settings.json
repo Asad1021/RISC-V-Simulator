@@ -4,7 +4,9 @@
         "ostream": "cpp",
         "iostream": "cpp",
         "iosfwd": "cpp",
-        "fstream": "cpp"
+        "fstream": "cpp",
+        "iomanip": "cpp",
+        "*.tcc": "cpp"
     },
     "makefile.launchConfigurations": [
         {
@@ -12,5 +14,6 @@
             "binaryPath": "/mnt/STUDY/GitHub/RISC-V-Simulator/myRISCV",
             "binaryArgs": []
         }
-    ]
+    ],
+    "C_Cpp.errorSquiggles": "disabled"
 }
