@@ -142,7 +142,7 @@ bool printPipe;
 bool DataForwarding;
 int offset = 0;
 
-int No_Stals = 0, No_Lw_Sw = 0, No_ALU_inst = 0, No_Ctrl_Inst = 0, No_Data_Hazard = 0, No_Control_Hazard = 0, No_stals_due_to_dataHazard = 0, No_stals_due_to_ctrlHazard = 0;
+int No_Stals = 0, No_Lw_Sw = 0, No_ALU_inst = 0, No_Ctrl_Inst = 0, No_Data_Hazard = 0, No_Control_Hazard = 0, No_stals_due_to_dataHazard = 0, No_stals_due_to_ctrlHazard = 0,No_Branch_miss=0;
 
 #pragma region FILE_RELATED_DATA
 void printRF();
@@ -369,6 +369,7 @@ class Fetch
             cout << "Number of control hazards: " << No_Control_Hazard << endl;
             cout << "Number of stalls due to data hazards: " << No_stals_due_to_dataHazard << endl;
             cout << "Number of stalls due to control hazards: " << No_stals_due_to_ctrlHazard << endl;
+            cout << "Number of branch miss prediction: " << No_Branch_miss << endl;
 
             exit(0);
         }
@@ -430,7 +431,7 @@ void make_file()
 {
     cout << "Enter input filename: ";
     // cin >> filename;
-    filename = "merge.txt";
+    filename = "Bubble_Asad.txt";
 
     ifstream infile;
     // the input dump file from venus
@@ -1639,9 +1640,12 @@ void resolveHazards()
     
     if ((ex_ma_mainPipeline.isBranch == 1) || (ex_ma_mainPipeline.isBranch == 2))
     {
+        if((ex_ma_mainPipeline.nextPCAdd.to_ulong()!=-1)&&(ex_ma_mainPipeline.nextPCAdd.to_ulong()!=de_ex_mainPipeline.CurrentPCAdd.to_ulong()))
+        No_Branch_miss++;
+
         ControlHazard = true;
         No_Control_Hazard++;
-        No_stals_due_to_ctrlHazard++;
+        No_stals_due_to_ctrlHazard+=2;
     }
 
     if (!ControlHazard) // checking only if there is no ctrl hazard
@@ -1718,7 +1722,8 @@ void ResolveHazard_Using_dataForwarding()
         {
             if (Rs1DeEx == ex_ma_mainPipeline.Rd) // hazard after ex(due to Rs1), we can forward data if the instruction is not lw/lh/lb
             {
-                if (ex_ma_mainPipeline.mem_OP > 0) // a memory operation, there has to be a stall
+                // if (ex_ma_mainPipeline.mem_OP > 0) // a memory operation, there has to be a stall
+                if (ex_ma_mainPipeline.Result_select==2) // a memory operation, there has to be a stall
                 {
                     DataHazard = true;
                     RefreshOprands = true;
@@ -1727,7 +1732,13 @@ void ResolveHazard_Using_dataForwarding()
                 }
                 else // it is a non mem operation and data is present in the pipe line, forwarding is possible
                 {
-                    int NewValue = ex_ma_mainPipeline.ALU_result;
+                    int NewValue;
+                    if(ex_ma_mainPipeline.Result_select==0)//pc+4
+                    NewValue = ex_ma_mainPipeline.CurrentPCAdd.to_ulong()+4;
+                    else if(ex_ma_mainPipeline.Result_select==1)//immu
+                    NewValue = ex_ma_mainPipeline.immU;
+                    else if(ex_ma_mainPipeline.Result_select==3)//aluresult
+                    NewValue = ex_ma_mainPipeline.ALU_result;
                     // refreshing the new Vlaue of the RS1 And putting it in the pipeline
                     switch (de_ex_mainPipeline.InstType)
                     {
@@ -1765,39 +1776,159 @@ void ResolveHazard_Using_dataForwarding()
             }
             else if (Rs1DeEx == ma_wb_mainPipeline.Rd) // hazard after ma(due to Rs1), we can forward data in any case
             {
-                int NewValue = ma_wb_mainPipeline.loaded_mem;
-                // refreshing the new Vlaue of the RS1 And putting it in the pipeline
-                switch (de_ex_mainPipeline.InstType)
+                if(ma_wb_mainPipeline.Result_select==2)//loaded mem
                 {
-                case 'R':
-                {
-                    de_ex_mainPipeline.Op1 = NewValue;
-                }
-                break;
-                case 'I':
-                {
-                    de_ex_mainPipeline.Op1 = NewValue;
-                    // if(de_ex_mainPipeline.ALU_Operation == 15)//jalr
-                    // ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.Op1 + de_ex_mainPipeline.imm;
-                }
-                break;
-                case 'S':
-                {
-                    de_ex_mainPipeline.Op1 = NewValue;
-                }
-                break;
-                case 'B':
-                {
-                    de_ex_mainPipeline.Op1 = NewValue;
-                }
-                break;
+                    int NewValue = ma_wb_mainPipeline.loaded_mem;
+                    // refreshing the new Vlaue of the RS1 And putting it in the pipeline
+                    switch (de_ex_mainPipeline.InstType)
+                    {
+                    case 'R':
+                    {
+                        de_ex_mainPipeline.Op1 = NewValue;
+                    }
+                    break;
+                    case 'I':
+                    {
+                        de_ex_mainPipeline.Op1 = NewValue;
+                        // if(de_ex_mainPipeline.ALU_Operation == 15)//jalr
+                        // ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.Op1 + de_ex_mainPipeline.imm;
+                    }
+                    break;
+                    case 'S':
+                    {
+                        de_ex_mainPipeline.Op1 = NewValue;
+                    }
+                    break;
+                    case 'B':
+                    {
+                        de_ex_mainPipeline.Op1 = NewValue;
+                    }
+                    break;
 
-                default:
-                {
-                    cout << "Some error occured While handeling Hazards, Exiting...";
-                    exit(0);
+                    default:
+                    {
+                        cout << "Some error occured While handeling Hazards, Exiting...";
+                        exit(0);
+                    }
+                    break;
+                    }
                 }
-                break;
+                else if(ma_wb_mainPipeline.Result_select==3)//aluresult
+                {
+                     int NewValue = ma_wb_mainPipeline.ALU_result;
+                    // refreshing the new Vlaue of the RS1 And putting it in the pipeline
+                    switch (de_ex_mainPipeline.InstType)
+                    {
+                    case 'R':
+                    {
+                        de_ex_mainPipeline.Op1 = NewValue;
+                    }
+                    break;
+                    case 'I':
+                    {
+                        de_ex_mainPipeline.Op1 = NewValue;
+                        // if(de_ex_mainPipeline.ALU_Operation == 15)//jalr
+                        // ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.Op1 + de_ex_mainPipeline.imm;
+                    }
+                    break;
+                    case 'S':
+                    {
+                        de_ex_mainPipeline.Op1 = NewValue;
+                    }
+                    break;
+                    case 'B':
+                    {
+                        de_ex_mainPipeline.Op1 = NewValue;
+                    }
+                    break;
+
+                    default:
+                    {
+                        cout << "Some error occured While handeling Hazards, Exiting...";
+                        exit(0);
+                    }
+                    break;
+                    }
+
+                }
+                else if(ma_wb_mainPipeline.Result_select==1)//immu
+                {
+                     int NewValue = ma_wb_mainPipeline.immU;
+                    // refreshing the new Vlaue of the RS1 And putting it in the pipeline
+                    switch (de_ex_mainPipeline.InstType)
+                    {
+                    case 'R':
+                    {
+                        de_ex_mainPipeline.Op1 = NewValue;
+                    }
+                    break;
+                    case 'I':
+                    {
+                        de_ex_mainPipeline.Op1 = NewValue;
+                        // if(de_ex_mainPipeline.ALU_Operation == 15)//jalr
+                        // ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.Op1 + de_ex_mainPipeline.imm;
+                    }
+                    break;
+                    case 'S':
+                    {
+                        de_ex_mainPipeline.Op1 = NewValue;
+                    }
+                    break;
+                    case 'B':
+                    {
+                        de_ex_mainPipeline.Op1 = NewValue;
+                    }
+                    break;
+
+                    default:
+                    {
+                        cout << "Some error occured While handeling Hazards, Exiting...";
+                        exit(0);
+                    }
+                    break;
+                    }
+
+                }
+                else if(ma_wb_mainPipeline.Result_select==0)//pc+4
+                {
+                    int NewValue = ma_wb_mainPipeline.CurrentPCAdd.to_ulong() + 4;
+                    // refreshing the new Vlaue of the RS1 And putting it in the pipeline
+                    switch (de_ex_mainPipeline.InstType)
+                    {
+                    case 'R':
+                    {
+                        de_ex_mainPipeline.Op1 = NewValue;
+                    }
+                    break;
+                    case 'I':
+                    {
+                        de_ex_mainPipeline.Op1 = NewValue;
+                        // if(de_ex_mainPipeline.ALU_Operation == 15)//jalr
+                        // ex_ma_mainPipeline.nextPCAdd = de_ex_mainPipeline.Op1 + de_ex_mainPipeline.imm;
+                    }
+                    break;
+                    case 'S':
+                    {
+                        de_ex_mainPipeline.Op1 = NewValue;
+                    }
+                    break;
+                    case 'B':
+                    {
+                        de_ex_mainPipeline.Op1 = NewValue;
+                    }
+                    break;
+
+                    default:
+                    {
+                        cout << "Some error occured While handeling Hazards, Exiting...";
+                        exit(0);
+                    }
+                    break;
+                    }
+
+                }
+                else{
+                    cout<<"error while solving hazards";
                 }
             }
         }
@@ -1815,7 +1946,18 @@ void ResolveHazard_Using_dataForwarding()
                 }
                 else // it is a non mem operation and data is present in the pipe line, forwarding is possible
                 {
-                    int NewValue = ex_ma_mainPipeline.ALU_result;
+                    int NewValue;
+                    if(ex_ma_mainPipeline.Result_select==0)//pc+4
+                    NewValue = ex_ma_mainPipeline.CurrentPCAdd.to_ulong()+4;
+                    else if(ex_ma_mainPipeline.Result_select==1)//immu
+                    NewValue = ex_ma_mainPipeline.immU;
+                    else if(ex_ma_mainPipeline.Result_select==3)//aluresult
+                    NewValue = ex_ma_mainPipeline.ALU_result;
+                    else
+                    {
+                    cout<<"Error handeling hazards EXITING...";
+                        exit(0);
+                    }
                     // refresh the new data here and  put it in the pipeline
                     switch (de_ex_mainPipeline.InstType)
                     {
@@ -1846,7 +1988,21 @@ void ResolveHazard_Using_dataForwarding()
             }
             else if (Rs2DeEx == ma_wb_mainPipeline.Rd) // hazard after ma(due to Rs2), we can forward data in any case
             {
-                int NewValue = ma_wb_mainPipeline.loaded_mem;
+                int NewValue;
+                    if(ma_wb_mainPipeline.Result_select==0)//pc+4
+                    NewValue = ma_wb_mainPipeline.CurrentPCAdd.to_ulong()+4;
+                    else if(ma_wb_mainPipeline.Result_select==1)//immu
+                    NewValue = ma_wb_mainPipeline.immU;
+                    else if(ma_wb_mainPipeline.Result_select==2)
+                    NewValue = ma_wb_mainPipeline.loaded_mem;
+                    else if(ma_wb_mainPipeline.Result_select==3)//aluresult
+                    NewValue = ma_wb_mainPipeline.ALU_result;
+                    else
+                    {
+                    cout<<"Error handeling hazards EXITING...";
+                        exit(0);
+                    }
+                
                 // refresh the new data here and  put it in the pipeline
                 switch (de_ex_mainPipeline.InstType)
                 {
