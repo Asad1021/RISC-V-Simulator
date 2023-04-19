@@ -1562,6 +1562,7 @@ void resolveHazards()
     int Rs2DeEx = de_ex_mainPipeline.Rs2; // Rs2 of de-ex stage
 
     if((ex_ma_mainPipeline.isBranch==1)||(ex_ma_mainPipeline.isBranch==2))
+    // if(((ex_ma_mainPipeline.nextPCAdd!=-1)&&(de_ex_mainPipeline.CurrentPCAdd!=-1))&&(ex_ma_mainPipeline.nextPCAdd!=de_ex_mainPipeline.CurrentPCAdd))
     {
         ControlHazard = true;
     }
