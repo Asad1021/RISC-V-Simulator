@@ -1,0 +1,40 @@
+00100613
+00028293
+00000313
+00600193
+00335c63
+018000ef
+00c2a023
+00428293
+00130313
+fe0006e3
+0280006f
+00c00533
+00251613
+00c54533
+00355613
+00c54533
+00451613
+00c54533
+00a00633
+00008067
+00000033
+00000033
+00000033
+00000033
+00000033
+FFFFFFFF
+
+addi x12,x0,1 #x12 is seed with value 12
+addi x5 x0 0x000 #x5 stored the starting address of array i.e. 0x10001000
+jal x1,.random # calling random to store random number in x12
+sw x12 0(x5) # storing x12 in memory
+jal x1,.random # calling random to store random number in x12
+sw x12 4(x5) # storing x12 in memory
+jal x0,.exit # exiting the program after performing all the computations
+.random:#it will generate random numbers from a particular given seed value
+add x10 x0 x12 # copied value of x12 in x10 i.e. x10 is x
+slli x12 x10 2
+add x12 x0 x10
+jalr x0 x1 0
+.exit: #final exit from program

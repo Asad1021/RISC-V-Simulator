@@ -1,0 +1,136 @@
+00100613
+19000293
+25800413
+00000313
+00a00193
+02335063
+07c000ef
+00c2a023
+00c42023
+00428293
+00440413
+00130313
+fe0002e3
+008000ef
+0900006f
+fd840413
+00300233
+00000313
+00000293
+fff20193
+0442d063
+405181b3
+02335263
+00042783
+00442803
+04f84a63
+00f42023
+01042223
+00440413
+00130313
+fe0000e3
+000201b3
+25800413
+00000313
+00128293
+fc0002e3
+00008067
+00c00533
+00251613
+00c54533
+00355613
+00c54533
+00451613
+00c54533
+00a00633
+00008067
+00080fb3
+00078833
+000f87b3
+fa0002e3
+00000033
+00000033
+00000033
+00000033
+00000033
+FFFFFFFF
+
+.main:
+addi x12,x0,1 #x12 is seed with value 12
+#lui x5 0x10001 
+addi x5 x0 0x190 #400//x5 stored the starting address of array i.e. 0x10001000
+#lui x8 0x10002
+addi x8 x0 0x258 #600//x8 stored the starting address of sorted array i.e. 0x10002000
+addi x6 x0 0 #x6 will store the starting index i i.e. 0
+addi x3 x0 10 # store number of elements
+
+.loop: # will execute SortedArray[i]=Array[i]=random() according to the template program in the problem statement
+bge x6 x3 .loopexit
+jal x1,.random # calling random to store random number in x12
+sw x12 0(x5) # storing x12 in memory
+sw x12 0(x8) # storing x12 in memory
+addi x5 x5 4 #incrementing memory address
+addi x8 x8 4 #incrementing memory address
+addi x6 x6 1 #incrementing index register i
+beq x0 x0 .loop # looping back to original
+.loopexit:  #we have successfully created our array in the memory
+
+jal x1 .bubbleSort # calling bubble sort on sorted array location
+
+jal x0,.exit # exiting the program after performing all the computations
+
+
+
+
+.bubbleSort:
+
+addi x8 x8 -40 # x8 again points to the starting location of our array
+add x4 x0 x3 #n is stored in register x4
+addi x6 x0 0 #x6 will store the starting index j i.e. 0
+addi x5 x0 0 #x6 will store the starting index i i.e. 0
+addi x3 x4 -1
+.loop_outer:
+bge x5 x4 .loop_outer_exit # running n times
+sub x3 x3 x5
+.loop_inner:
+bge x6 x3 .loop_inner_exit
+lw x15 0(x8)#we have derived the number from memory and have stored in x15
+lw x16 4(x8)#we have derived the number from memory and have stored in x16
+blt x16 x15 .swap
+
+.continue_sort:
+sw x15 0(x8)#we have stored the number into memory from register x15
+sw x16 4(x8)#we have stored the number into memory from register x16
+
+addi x8 x8 4 #incrementing memory address
+addi x6 x6 1 #incrementing index register i
+beq x0 x0 .loop_inner
+.loop_inner_exit:# will exit the inner loop
+add x3 x4 x0
+#lui x8 0x10002
+addi x8 x0 0x258 
+#addi x3 x0 9
+addi x6 x0 0 #x6 will store the starting index j i.e. 0
+addi x5 x5 1 #incrementing index register i
+beq x0 x0 .loop_outer
+.loop_outer_exit:
+jalr x0 x1 0#returning back to main from bubbleSort Function
+
+.random:#it will generate random numbers from a particular given seed value
+add x10 x0 x12 # copied value of x12 in x10 i.e. x10 is x
+slli x12 x10 2
+xor x10 x10 x12
+srli x12 x10 3 
+xor x10 x10 x12
+slli x12 x10 4
+xor x10 x10 x12
+add x12 x0 x10
+jalr x0 x1 0
+
+.swap:#it will swap two numbers as and when needed
+add x31 x16 x0
+add x16 x15 x0
+add x15 x31 x0
+beq x0 x0 .continue_sort
+
+ .exit: #final exit from program

@@ -11,4 +11,31 @@
 00128293
 fe0006e3
 00008133
+00000033
+00000033
+00000033
+00000033
+00000033
 FFFFFFFF
+
+
+add x1 x0 x0 #x1=0//a
+addi x2 x0 1 #x2=1//b
+addi x5 x0 2 #x5=1//i
+addi x3 x0 7 #replace the number by N
+beq x3 x0 .if
+addi x3 x3 1 #incrementing N(x3) as the loop has to run till the N
+
+.loop: 
+bge x5 x3 .exit#exiting if the loop condition fails
+add x4 x1 x2#c=x4//c=a+b
+add x1 x2 x0#a=b
+add x2 x4 x0#b=c
+addi x5 x5 1#i++
+beq x0 x0 .loop#going to the loop
+
+.if:
+add x2 x1 x0#//  if( n == 0)  b = a;
+
+.exit:#exit
+#the value is stored in x2(i.e. b)
