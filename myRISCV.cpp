@@ -315,45 +315,48 @@ class Fetch
             cout << endl
                  << "EXITING...\n";
 
-            ofstream memFile; // storing the memmory array in a txt file.
-            memFile.open("Memory_Dump.txt");
-            memFile<<"            DATA SEGMENT"<<endl<<"--------------------------------------"<<endl;
-            memFile<<"Address         "<<"+0    +1    +2    +3"<<endl<<endl;
+            {//writing to memmory file
+                ofstream memFile; // storing the memmory array in a txt file.
+                memFile.open("Memory_Dump.txt");
+                memFile<<"            DATA SEGMENT"<<endl<<"--------------------------------------"<<endl;
+                memFile<<"Address         "<<"+0    +1    +2    +3"<<endl<<endl;
 
-            for (int i = 0; i < MEMORY_SIZE; i++)
-            {
-                unsigned int temp = (unsigned int)(*(memory_arr + i));
-                if (temp > INT32_MAX)
+                for (int i = 0; i < MEMORY_SIZE; i++)
                 {
-                    temp = temp - 0xffffff00;
+                    unsigned int temp = (unsigned int)(*(memory_arr + i));
+                    if (temp > INT32_MAX)
+                    {
+                        temp = temp - 0xffffff00;
+                    }
+                    if(i%4==0)
+                    memFile <<"0x"<< setfill('0') << setw(8) << hex<<(i+INSTMEM_SIZE)<<"      ";
+                    memFile << setfill('0') << setw(2) << hex << temp << (((i + 1) % 4 == 0) ? "\n" : "    ");
                 }
-                if(i%4==0)
-                memFile <<"0x"<< setfill('0') << setw(8) << hex<<(i+INSTMEM_SIZE)<<"      ";
-                memFile << setfill('0') << setw(2) << hex << temp << (((i + 1) % 4 == 0) ? "\n" : "    ");
+                memFile.close();
             }
-            memFile.close();
 
-            ofstream InstFile; // storing the memmory array in a txt file.
-            InstFile.open("Instruction.txt");
-            InstFile<<"            TEXT SEGMENT"<<endl<<"--------------------------------------"<<endl;
-            InstFile<<"Address         "<<"+0    +1    +2    +3"<<endl<<endl;                  
+            {//writing to the instruction file
+                ofstream InstFile; // storing the memmory array in a txt file.
+                InstFile.open("Instruction.txt");
+                InstFile<<"            TEXT SEGMENT"<<endl<<"--------------------------------------"<<endl;
+                InstFile<<"Address         "<<"+0    +1    +2    +3"<<endl<<endl;
 
-
-            for (int i = 0; i < INSTMEM_SIZE; i++)
-            {
-                unsigned int temp = (unsigned int)(*(InstMem + i));
-                if (temp > INT32_MAX)
+                for (int i = 0; i < INSTMEM_SIZE; i++)
                 {
-                    temp = temp - 0xffffff00;
+                    unsigned int temp = (unsigned int)(*(InstMem + i));
+                    if (temp > INT32_MAX)
+                    {
+                        temp = temp - 0xffffff00;
+                    }
+                    if(i%4==0)
+                    InstFile <<"0x"<< setfill('0') << setw(8) << (i)<<"      ";
+                    InstFile << setfill('0') << setw(2) << hex << temp << (((i + 1) % 4 == 0) ? "\n" : "    ");
+                    // InstFile << i << ": " << hex << temp << (((i + 1) % 4 == 0) ? "\n" : "  |");
                 }
-                if(i%4==0)
-                InstFile <<"0x"<< setfill('0') << setw(8) << (i)<<"      ";
-                InstFile << setfill('0') << setw(2) << hex << temp << (((i + 1) % 4 == 0) ? "\n" : "    ");
-                // InstFile << i << ": " << hex << temp << (((i + 1) % 4 == 0) ? "\n" : "  |");
+                InstFile.close();
             }
-            InstFile.close();
 
-            printRF();
+            printRF();//printd the register file
 
             btb_printer(BTB,BUFFER_SIZE);
             cout << endl
@@ -371,7 +374,7 @@ class Fetch
             cout << "Number of stalls due to control hazards: " << No_stals_due_to_ctrlHazard << endl;
             cout << "Number of branch miss prediction: " << No_Branch_miss << endl;
 
-            exit(0);
+            exit(1);
         }
         // stoul converts string of type 0x012312 to its decimal value
 
@@ -430,8 +433,7 @@ public:
 void make_file()
 {
     cout << "Enter input filename: ";
-    // cin >> filename;
-    filename = "Bubble_Asad.txt";
+    cin >> filename;
 
     ifstream infile;
     // the input dump file from venus
@@ -1641,11 +1643,12 @@ void resolveHazards()
     if ((ex_ma_mainPipeline.isBranch == 1) || (ex_ma_mainPipeline.isBranch == 2))
     {
         if((ex_ma_mainPipeline.nextPCAdd.to_ulong()!=-1)&&(ex_ma_mainPipeline.nextPCAdd.to_ulong()!=de_ex_mainPipeline.CurrentPCAdd.to_ulong()))
-        No_Branch_miss++;
+        {   No_Branch_miss++;
 
-        ControlHazard = true;
-        No_Control_Hazard++;
-        No_stals_due_to_ctrlHazard+=2;
+            ControlHazard = true;
+            No_Control_Hazard++;
+            No_stals_due_to_ctrlHazard+=2;
+        }
     }
 
     if (!ControlHazard) // checking only if there is no ctrl hazard
@@ -1711,9 +1714,14 @@ void ResolveHazard_Using_dataForwarding()
 
     if ((ex_ma_mainPipeline.isBranch == 1) || (ex_ma_mainPipeline.isBranch == 2))
     {
-        ControlHazard = true;
-        No_Control_Hazard++;
-        No_stals_due_to_ctrlHazard++;
+        if((ex_ma_mainPipeline.nextPCAdd.to_ulong()!=-1)&&(ex_ma_mainPipeline.nextPCAdd.to_ulong()!=de_ex_mainPipeline.CurrentPCAdd.to_ulong()))
+        {
+            No_Branch_miss++;
+        
+            ControlHazard = true;
+            No_Control_Hazard++;
+            No_stals_due_to_ctrlHazard++;
+        }
     }
 
     if (!ControlHazard) // checking only if there is no ctrl hazard
@@ -2115,9 +2123,9 @@ void RISCv_Processor()
                 Fetch a(1);
                 Clock++;
 
-                cout << "contrh:" << ControlHazard << endl;
-                cout << "dataH:" << DataHazard << endl;
-                cout << "refOP:" << RefreshOprands << endl;
+                // cout << "contrh:" << ControlHazard << endl;
+                // cout << "dataH:" << DataHazard << endl;
+                // cout << "refOP:" << RefreshOprands << endl;
 
                 ResolveHazard_Using_dataForwarding();
 
@@ -2222,21 +2230,17 @@ void init_NoOps()
 int main()
 {
     btb_nuller(BTB, BUFFER_SIZE);
-    // cout << "enter 1 for enable pipeline else 0:";
-    // cin >> ispipeLine;
+    cout << "enter 1 for enable pipeline else 0:";
+    cin >> ispipeLine;
 
-    // cout << "enter 1 for enable data forwarding else 0:";
-    // cin >> DataForwarding;
+    cout << "enter 1 for enable data forwarding else 0:";
+    cin >> DataForwarding;
 
-    // cout << "enter 1 for enable printing RF at the end of each cycle else 0:";
-    // cin >> printRegFile;
+    cout << "enter 1 for enable printing RF at the end of each cycle else 0:";
+    cin >> printRegFile;
 
-    // cout << "enter 1 for enable printing PipeLine at the end of each cycle else 0:";
-    // cin >> printPipe;
-    ispipeLine=true;
-    DataForwarding = false;
-    printRegFile = true;
-    printPipe = true;
+    cout << "enter 1 for enable printing PipeLine at the end of each cycle else 0:";
+    cin >> printPipe;
 
     init_NoOps();
     make_file();
