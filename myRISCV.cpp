@@ -4,15 +4,20 @@
 #include <bitset>
 #include <string>
 #include <cstdlib>
-#include<iomanip>
+#include <cmath>
+#include <iomanip>
 
 // ################# remember to update mem.Oprands
 
 #define MEMORY_SIZE 120000
 #define INSTMEM_SIZE 12000
 #define BUFFER_SIZE 120
+
 // immb conversion is always a unsigned operation hence we have to convert it to signed one by using typecast
 // immB+PC; immB=immb.to_ulong();//unsigned
+
+int cacheSize = 4; /*BYTES*/  
+int blockSize = 4; /*BYTES*/
 
 using namespace std;
 
@@ -26,6 +31,8 @@ typedef struct BranchTargetBuffer
 
 B_T_B BTB[BUFFER_SIZE];
 int BTB_index = 0;
+
+// Cache<int,int> cache(cacheSize,blockSize);
 
 void btb_nuller(B_T_B BTB[], int n)
 {
@@ -2218,6 +2225,110 @@ void init_NoOps()
     ex_ma_mainPipeline = ex_ma_No_Op;
     ma_wb_mainPipeline = ma_wb_No_Op;
 }
+template<typename _key, typename _val>
+class Cache 
+{
+    private:
+        unordered_map<_key, _val> cache;
+        int blockSize;
+        int cacheSize;
+        //LRU(0)/FIFO(1)/Random(2)/LFU(3)
+        int policy;/*REPLACEMENT POLICY*/
+        //number of ways of assosc
+        int setAssosciativity;
+        /*Direct mapped (0)
+        Full Assoc (1)
+        Set Assoc (2),*/
+        int mapping;
+    public:
+        //cache size = cap
+        Cache(int _capacity, 
+        int _blockSize,
+        int _policy, 
+        int _mapping,
+        int _SAassosc) : cacheSize(_capacity), blockSize(_blockSize), policy(_policy),  mapping(_mapping), setAssosciativity(_SAassosc) {}
+
+        _val get(_key key) 
+        {
+            if (cache.find(key) != cache.end()) {
+                return cache[key];
+            }
+            return _val();
+        }
+
+        void put(_key key, _val value)
+        {
+            if (cache.size() == cacheSize) 
+            {
+                switch (policy)
+                {
+                    case 0:
+                    {
+                        cache.erase(cache.begin());
+                        cout<<"Policy is FIFO";
+
+                    }
+                        break;
+                    case 1:
+                    {
+                        cout<<"Policy is LRU";
+                    }
+
+                    default:
+                        break;
+                }
+            }
+            cache[key] = value;
+        }
+        void show_cache()
+        {
+            for (auto it = cache.begin(); it != cache.end(); ++it) {
+                cout <<it->first<<" "<<it->second << std::endl;
+            }
+        }
+        
+        int size() 
+        {
+            return cache.size();
+        }
+};
+#pragma region CACHE
+
+    //1 = fifo
+    int policy = 1; 
+    //0 = direct mapping
+    int mapping = 0;
+    int waysOfSetAssosc = 2;
+    Cache<int, int> cache(cacheSize, blockSize, policy, mapping, waysOfSetAssosc );
+    // RISCv_Processor();
+
+void Placeholder_Name(int data, int intAddress,
+ int setData, int readWrite)
+{
+    bitset<32> address(intAddress);
+    int numberOfBlocks = (cacheSize/blockSize);
+    int blockOffsetBits = log2(blockSize); //3
+    int indexBits = log2(numberOfBlocks);  //1
+    bitset<32> targetAddress = address>>blockOffsetBits>>indexBits;
+    int targetAddressInt = targetAddress.to_ulong();
+    switch (readWrite)
+    {
+    //read
+    case 0:
+        cache.get(targetAddressInt);
+        break;
+    //write
+    case 1:
+        cache.put(targetAddressInt, data);
+        break;
+    default:
+        break;
+    }
+
+        
+}
+
+#pragma endregion CACHE
 
 int main()
 {
@@ -2238,8 +2349,16 @@ int main()
     printRegFile = true;
     printPipe = true;
 
-    init_NoOps();
-    make_file();
-    RISCv_Processor();
+    cacheSize = 16;
+    blockSize = 8;
+    //intialise cache capacity, policy
+    Placeholder_Name(1, 32, 0, 0);
+    Placeholder_Name(1, 16, 0, 0);
+    Placeholder_Name(1, 16, 0, 0);
+    cache.show_cache();
+    // init_NoOps();
+    // make_file();
+    
+   
     return 0;
 }
