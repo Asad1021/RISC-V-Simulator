@@ -8,18 +8,16 @@ using namespace std;
 // _val val of the value input
 // _type type assosciativty
 // _policy replacement policy
-// 0 FIFO Policy
-//
-template<class _key, typename _val>
+template<typename _key, typename _val>
 class Cache 
 {
     private:
         unordered_map<_key, _val> cache;
-        int cacheSize;
+        int capacity;
         int policy;
     public:
         //cache size
-        Cache(int _cap, int _policy) : cacheSize(_cap), policy(_policy) {}
+        Cache(int _cap, int _policy) : capacity(_cap), policy(_policy) {}
 
         _val get(_key key) 
         {
@@ -31,25 +29,17 @@ class Cache
 
         void put(_key key, _val value)
         {
-            if (cache.size() == cacheSize) 
+            switch (policy)
             {
-                switch (policy)
-                {
-                case 0:
-                {
-                    cache.erase(cache.begin());
-                    cout<<"Policy is FIFO";
-
-                }
-                    break;
-                case 1:
-                {
-                    cout<<"Policy is LRU";
-                }
-
-                default:
-                    break;
-                }
+            case 0:
+                cout<<"Policy is LRU";
+                break;
+            
+            default:
+                break;
+            }
+            if (cache.size() == capacity) {
+                cache.erase(cache.begin());
             }
             cache[key] = value;
         }
