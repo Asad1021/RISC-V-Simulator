@@ -6,7 +6,8 @@
         "iosfwd": "cpp",
         "fstream": "cpp",
         "iomanip": "cpp",
-        "*.tcc": "cpp"
+        "*.tcc": "cpp",
+        "streambuf": "cpp"
     },
     "makefile.launchConfigurations": [
         {

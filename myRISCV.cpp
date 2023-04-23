@@ -150,6 +150,8 @@ bool printRegFile;
 bool printPipe;
 bool DataForwarding;
 int offset = 0;
+int blockSize = 4; /*BYTES*/
+
 
 int No_Stals = 0, No_Lw_Sw = 0, No_ALU_inst = 0, No_Ctrl_Inst = 0, No_Data_Hazard = 0, No_Control_Hazard = 0, No_stals_due_to_dataHazard = 0, No_stals_due_to_ctrlHazard = 0,No_Branch_miss=0;
 
@@ -2227,6 +2229,53 @@ void init_NoOps()
     ex_ma_mainPipeline = ex_ma_No_Op;
     ma_wb_mainPipeline = ma_wb_No_Op;
 }
+
+#pragma region MainMemory
+
+class MainMemory
+{
+    private:
+
+    void Write(int address, char *value)
+    {
+        for (int i = 0; i < blockSize; i++)
+        {
+            memory_arr[address + i] = value[i];
+        }
+        return;
+    }
+
+    void Read(int address,char *Output)
+    {
+        for (int i = 0; i < blockSize; i++)
+        {
+            Output[i] = memory_arr[address + i];
+        }
+        return;
+    }
+
+    public:
+    void write(int address, int *values)
+    {
+        int EffectiveAddress;//will store the address from where the block starts
+        EffectiveAddress = address - address % blockSize;//removing last log2(Blocksize) bits
+        Write(EffectiveAddress, values);
+        return;
+    }
+
+    void read(int address, char *Output)//this will populate the array output from the memarray
+    {
+        int EffectiveAddress;//will store the address from where the block starts
+        EffectiveAddress = address - address % blockSize;//removing last log2(Blocksize) bits
+        Read(EffectiveAddress, Output);        
+        return;
+    }
+};
+
+#pragma endregion MainMemory
+
+
+
 #pragma region CACHE
     
 int cacheSize = 16; /*BYTES*/  
@@ -2638,6 +2687,8 @@ void Placeholder_Name(char *data, int intAddress,
 }
 
 #pragma endregion CACHE
+
+
 
 int main()
 {
