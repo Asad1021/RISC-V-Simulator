@@ -8,26 +8,26 @@ using namespace std;
 // _val val of the value input
 // _type type assosciativty
 // _policy replacement policy
-template<typename _key, typename _val>
+template<typename int, typename int>
 class Cache 
 {
     private:
-        unordered_map<_key, _val> cache;
+        unordered_map<int, int> cache;
         int capacity;
         int policy;
     public:
         //cache size
         Cache(int _cap, int _policy) : capacity(_cap), policy(_policy) {}
 
-        _val get(_key key) 
+        int get(int key) 
         {
             if (cache.find(key) != cache.end()) {
                 return cache[key];
             }
-            return _val();
+            return int();
         }
 
-        void put(_key key, _val value)
+        void put(int key, int value)
         {
             switch (policy)
             {

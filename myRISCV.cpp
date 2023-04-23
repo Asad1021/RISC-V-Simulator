@@ -6,6 +6,10 @@
 #include <cstdlib>
 #include <cmath>
 #include <iomanip>
+#include <map>
+// #include <bits/stdc++.h>
+#include <list>
+#include <utility> // needed for std::pair
 
 // ################# remember to update mem.Oprands
 
@@ -16,8 +20,6 @@
 // immb conversion is always a unsigned operation hence we have to convert it to signed one by using typecast
 // immB+PC; immB=immb.to_ulong();//unsigned
 
-int cacheSize = 4; /*BYTES*/  
-int blockSize = 4; /*BYTES*/
 
 using namespace std;
 
@@ -2225,11 +2227,31 @@ void init_NoOps()
     ex_ma_mainPipeline = ex_ma_No_Op;
     ma_wb_mainPipeline = ma_wb_No_Op;
 }
-template<typename _key, typename _val>
+#pragma region CACHE
+    
+int cacheSize = 4; /*BYTES*/  
+int blockSize = 4; /*BYTES*/
+int miss;
+//1 = fifo
+int policy = 1; 
+//0 = direct mapping
+int mapping = 0;
+int waysOfSetAssosc = 2;
+
+struct BlockParameters
+{
+    int tag; 
+    int data;
+    int validBit;
+    int recencyInfo;
+
+};
+
 class Cache 
 {
     private:
-        unordered_map<_key, _val> cache;
+        vector<struct BlockParameters> cache;
+        int currentSize;
         int blockSize;
         int cacheSize;
         //LRU(0)/FIFO(1)/Random(2)/LFU(3)
@@ -2240,50 +2262,116 @@ class Cache
         Full Assoc (1)
         Set Assoc (2),*/
         int mapping;
+
+        void DirectMap(int key, int value, int index)
+        {
+            // cout<<key;
+            BlockParameters block;
+            block.tag = key;
+            block.data = value;
+            block.validBit = 1;
+            block.recencyInfo = 0;
+            cache[index] = block;
+        }
+        void FullyAssosciative(int key, int value)
+        {
+            bool validBitPresent = false;
+            for(auto &it :cache)
+            {
+                if(it.validBit == 0)
+                {
+                    it.validBit = 1;
+                    it.data = value;
+                    it.tag = key;
+                    it.recencyInfo = blockSize;
+                    validBitPresent = true;
+                    break;
+                }
+            }
+            //case where it is full
+            if(!validBitPresent)
+            {
+                //EVICTION
+            }
+        }
+        void SetAssosciative()
+        {
+
+        }
+
     public:
         //cache size = cap
         Cache(int _capacity, 
         int _blockSize,
         int _policy, 
         int _mapping,
-        int _SAassosc) : cacheSize(_capacity), blockSize(_blockSize), policy(_policy),  mapping(_mapping), setAssosciativity(_SAassosc) {}
-
-        _val get(_key key) 
+        int _SAassosc) : cacheSize(_capacity), blockSize(_blockSize), policy(_policy),  mapping(_mapping), setAssosciativity(_SAassosc) 
         {
-            if (cache.find(key) != cache.end()) {
-                return cache[key];
-            }
-            return _val();
-        }
-
-        void put(_key key, _val value)
-        {
-            if (cache.size() == cacheSize) 
+            for (int i = 0; i < (_capacity)/(_blockSize); i++) 
             {
-                switch (policy)
+                // pair<int, int> block;
+                BlockParameters block;
+                block.validBit = 0;
+                block.recencyInfo = 0;
+                block.data = NULL;
+                block.tag = NULL;
+                // cache.push_back(block);
+                currentSize = 0;
+                cache.push_back(block);
+            }
+        };
+
+        list<int> get(int key) 
+        {
+            // if (block.find(key) != block.end()) {
+            //     return block[key];
+            // }
+            miss++;
+            // miss++;
+            return list<int>();
+        }
+        void LRU(int index)
+        {
+            if (cache[index].validBit ) 
+            {
+
+            }
+        }
+        void put(int key, int value, int index)
+        {
+            // if(0)
+            //choose a mapping
+            switch(mapping)
+            {
+                case 0:
                 {
-                    case 0:
-                    {
-                        cache.erase(cache.begin());
-                        cout<<"Policy is FIFO";
-
-                    }
-                        break;
-                    case 1:
-                    {
-                        cout<<"Policy is LRU";
-                    }
-
-                    default:
-                        break;
+                    DirectMap(key, value, index);
+                }
+                break;
+                case 1:
+                {
+                    FullyAssosciative(key, value);
+                }
+                break;
+                case 2:
+                {
+                    SetAssosciative();
                 }
             }
-            cache[key] = value;
         }
         void show_cache()
         {
-            for (auto it = cache.begin(); it != cache.end(); ++it) {
-                cout <<it->first<<" "<<it->second << std::endl;
+            cout<<"TARGET ADDRESS                DATA STORED";
+                cout<<endl;
+            int i = 0;
+            for(auto &it :cache)
+            // for (auto it = cache.begin(); it != cache.end(); ++it) 
+            {
+                // cout<<it.v<<" "<<it.second;
+                cout<<i++<<") "<<"Data: "<<it.data<<" Tag: "<<it.tag<<" Recency: "<<it.recencyInfo<<" Valid bit: "<<it.validBit;
+                // for(auto &obj : it.second)
+                // for(auto obj = (it->second).begin(); obj != (it->second).end(); ++obj)
+                cout<<endl;
             }
         }
         
@@ -2292,16 +2380,7 @@ class Cache
             return cache.size();
         }
 };
-#pragma region CACHE
-
-    //1 = fifo
-    int policy = 1; 
-    //0 = direct mapping
-    int mapping = 0;
-    int waysOfSetAssosc = 2;
-    Cache<int, int> cache(cacheSize, blockSize, policy, mapping, waysOfSetAssosc );
-    // RISCv_Processor();
-
+Cache cache(cacheSize, blockSize, policy, mapping, waysOfSetAssosc );
 void Placeholder_Name(int data, int intAddress,
  int setData, int readWrite)
 {
@@ -2309,7 +2388,35 @@ void Placeholder_Name(int data, int intAddress,
     int numberOfBlocks = (cacheSize/blockSize);
     int blockOffsetBits = log2(blockSize); //3
     int indexBits = log2(numberOfBlocks);  //1
+    int mask = (1<<blockOffsetBits) - 1;
     bitset<32> targetAddress = address>>blockOffsetBits>>indexBits;
+    int index = (mask&(intAddress>>2));
+
+    switch (mapping)
+    {
+        //direct mapping
+        case 0:
+        {
+            index = index % numberOfBlocks;
+        }
+            break;
+        //fully ass
+        case 1:
+        {
+            // index = 
+        }
+        break;
+        //set ass
+        case 2:
+        {
+            // index = index % waysOfSetAssosc;
+        }
+        break;
+        
+        default:
+            break;
+    }
+
     int targetAddressInt = targetAddress.to_ulong();
     switch (readWrite)
     {
@@ -2319,7 +2426,7 @@ void Placeholder_Name(int data, int intAddress,
         break;
     //write
     case 1:
-        cache.put(targetAddressInt, data);
+        cache.put(targetAddressInt, data, index);
         break;
     default:
         break;
@@ -2348,17 +2455,17 @@ int main()
     DataForwarding = false;
     printRegFile = true;
     printPipe = true;
-
+    miss = 0;
     cacheSize = 16;
     blockSize = 8;
     //intialise cache capacity, policy
-    Placeholder_Name(1, 32, 0, 0);
+    Placeholder_Name(1, 32, 0, 1);/*OUTPUT 2*/
     Placeholder_Name(1, 16, 0, 0);
     Placeholder_Name(1, 16, 0, 0);
     cache.show_cache();
     // init_NoOps();
     // make_file();
-    
+    // RISCv_Processor();
    
     return 0;
 }
