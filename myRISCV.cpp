@@ -2,7 +2,7 @@
 #include <fstream>
 #include <string>
 #include <bitset>
-#include <string>
+#include <string.h>
 #include <cstdlib>
 #include <cmath>
 #include <iomanip>
@@ -12,6 +12,8 @@
 #include <utility> // needed for std::pair
 
 // ################# remember to update mem.Oprands
+
+char nullData = '~';
 
 #define MEMORY_SIZE 120000
 #define INSTMEM_SIZE 12000
@@ -33,7 +35,7 @@ typedef struct BranchTargetBuffer
 
 B_T_B BTB[BUFFER_SIZE];
 int BTB_index = 0;
-
+char* Placeholder_Name(char *, int , int , int );
 // Cache<int,int> cache(cacheSize,blockSize);
 
 void btb_nuller(B_T_B BTB[], int n)
@@ -1373,55 +1375,73 @@ class Memory_Access
 
         case 1:
         { // write
-            No_Lw_Sw++;
-            switch (storeloadop)
-            {
-            case 0:
-                *mem_add = memop2 & 255; // sb
-                cout << "Storing byte " << (memop2 & 255) << endl;
-                break;
+                No_Lw_Sw++;
+                int data;
+                char *arr = new char[4];
+                int bytes_to_read;
+                switch (storeloadop)
+                {
+                        case 0:
+                            // *mem_add = memop2 & 255; // sb
+                            data = memop2 & 255;
+                            cout << "Storing byte " << (memop2 & 255) << endl;
+                            bytes_to_read=1;
+                            break;
 
-            case 1:
-                *mem_add = memop2 & 65535; // sh
-                cout << "Storing half-word " << (memop2 & 65535) << endl;
-                break;
+                        case 1:
+                            // *mem_add = memop2 & 65535; // sh
+                            data = memop2 & 65535;
+                            cout << "Storing half-word " << (memop2 & 65535) << endl;
+                            bytes_to_read=2;
+                            break;
 
-            case 2:
-                *mem_add = memop2; // sw
-                cout << "Storing word " << memop2 << endl;
-                break;
-            }
+                        case 2:
+                            // *mem_add = memop2; // sw
+                            data = memop2;
+                            cout << "Storing word " << memop2 << endl;
+                            bytes_to_read=4;
+                            break;
+                }
+                int *ptr = (int *) arr;
+                *ptr = data;
+
+                Placeholder_Name(arr,aluresult,1,bytes_to_read);
         }
         break;
 
         case 2:
         { // read (load) pending
+        int bytesToRead;
             No_Lw_Sw++;
             switch (storeloadop)
             {
             case 0:
-                loaddata = *mem_add; // lb
-                loaddata = loaddata & 255;
+                // loaddata = *mem_add; // lb
+                // loaddata = loaddata & 255;
+                bytesToRead = 1;
                 cout << "Loading byte in register" << endl;
                 break;
 
             case 1:
-                loaddata = *mem_add; // lh
-                loaddata = loaddata & 65535;
+                // loaddata = *mem_add; // lh
+                // loaddata = loaddata & 65535;
+                bytesToRead = 2;
                 cout << "Loading half-word in register" << endl;
                 break;
 
             case 2:
                 loaddata = *mem_add; // lw
+                bytesToRead = 4;
                 cout << "Loading word in register" << endl;
                 break;
             }
             // loaddata = readData(aluresult,storeloadop,0);
+            Placeholder_Name(&nullData, aluresult, 0, bytesToRead);
             hs_ma_wb.loaded_mem = loaddata;
         }
         break;
         }
-
+        
         cout << "\n### End Memmory Access ###\n\n";
 
         ma_wb_mainPipeline.loaded_mem = loaddata;                            // dont care
@@ -2255,7 +2275,7 @@ class MainMemory
     }
 
     public:
-    void write(int address, int *values)
+    void write(int address, char *values)
     {
         int EffectiveAddress;//will store the address from where the block starts
         EffectiveAddress = address - address % blockSize;//removing last log2(Blocksize) bits
@@ -2279,7 +2299,7 @@ class MainMemory
 #pragma region CACHE
     
 int cacheSize = 16; /*BYTES*/  
-int blockSize = 4; /*BYTES*/
+// int blockSize = 4; /*BYTES*/
 int miss;
 int FIFOindex = 0;;
 //1 = fifo
@@ -2316,9 +2336,9 @@ class Cache
         Set Assoc (2),*/
         int mapping;
 
-        BlockParameters DirectMap(int key, char *value, int index, int blockOffset, int RW)
+        char* DirectMap(int key, char *value, int index, int blockOffset, int RW, int bytesToRW)
         {
-            // cout<<key;
+            // cout<<"bloo"<<blockOffset;
             switch (RW)
             {
                 case 0:
@@ -2330,12 +2350,35 @@ class Cache
                     if(it->tag == key)
                     {
                         cout<<"Data found";
-                        return *it;
+                        // return *it;
+                        if((blockSize - blockOffset) >= bytesToRW)
+                        {
+                            char* substr = new char[bytesToRW];
+                            strncpy(substr, &it->data[blockOffset], bytesToRW);
+                            return substr;
+                        }
+                        else if((blockSize - blockOffset) < bytesToRW)
+                        {
+                            char* finalStr = new char[bytesToRW];
+                            strncpy(finalStr, &it->data[blockOffset],(blockSize-blockOffset));
+
+                            if(index + 1 >= (cacheSize/blockSize))
+                            {
+                                char *ptr = DirectMap(key + 1, &nullData, 0, 0, 0,bytesToRW - (blockSize-blockOffset));
+                                strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
+                            }
+                            else if(index + 1 < (cacheSize/blockSize))
+                            {
+                                char *ptr = DirectMap(key, &nullData, index + 1, 0, 0,bytesToRW - (blockSize-blockOffset));
+                                strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
+                            }
+                        }
+                        
                     } 
                     else
                     {
                         cout<<"Get from main memory";
-                        return *(cache.end());
+                        return &nullData;
                     }
                 }
                 break;
@@ -2348,17 +2391,45 @@ class Cache
                     block.recencyInfo = 0;
                     auto it = cache.begin();
                     advance(it, index);
-                    
-                    it->data = value;
+                    if((blockSize - blockOffset) >= bytesToRW)
+                    {
+                        // cout<<"Block size "<<blockOffset;
+                        // cout<<"Where";
+                        char* substr = new char[bytesToRW];
+                        memcpy(&it->data[blockOffset], value, bytesToRW);
+                    }
+                    else if((blockSize - blockOffset) < bytesToRW)
+                    {
+                        // char* substr1 = new char[blockSize-blockOffset];
+                        // char* substr2 = new char[bytesToRW - (blockSize-blockOffset)];
+                        char* finalStr = new char[bytesToRW];
+                        cout<<"block siz is "<<blockSize - blockOffset<<endl;
+                        // cout<<value[0]<<value[1]<<value[2];
+                        memcpy(&(it->data[blockOffset]), value, blockSize - blockOffset);
+                        if(index + 1 >= (cacheSize/blockSize))
+                        {
+                            //write in next block
+                            char *ptr = DirectMap(key + 1, value + (blockSize-blockOffset), 0, 0, 1,bytesToRW - (blockSize-blockOffset));
+                            // memcpy(&it->data[blockOffset], value + ((blockSize - blockOffset)), bytesToRW - (blockSize - blockOffset));
+                            // strncpy(finalStr, ptr,bytesToRW - (blockSize-blockOffset));
+                        }
+                        else if(index + 1 < (cacheSize/blockSize))
+                        {
+                            char *ptr = DirectMap(key, value + (blockSize-blockOffset), index + 1, 0, 1,bytesToRW - (blockSize-blockOffset));
+                            // strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
+                            // memcpy(&it->data[blockOffset], value + ((blockSize - blockOffset)),bytesToRW - (blockSize - blockOffset));
+                        }
+                        // cout<<"here is"<<*finalStr;
+                    }
                     it->tag = key;
                     it->validBit = 1;
                     it->recencyInfo = blockSize -1;
-                    return *(cache.end());
+                    return &nullData;
                 }
             }
 
         }
-        BlockParameters FullyAssosciative(int key, char *value, int blockOffset, int RW)
+        char* FullyAssosciative(int key, char *value, int blockOffset, int RW, int bytesToRW)
         {
             bool validBitPresent = false;
             switch(RW)
@@ -2368,7 +2439,7 @@ class Cache
                     for(auto it = cache.begin(); it != cache.end(); ++it)
                     {
                         //check for an empty block
-                        if(it->key == key)
+                        if(it->tag == key)
                         {
                             //on accessing put the cache block at the end; 
                             //LRU
@@ -2377,7 +2448,17 @@ class Cache
                                 case 0:
                                 {
                                     //LRU
+                                    char *substr;
+                                    if((blockSize - blockOffset) >= bytesToRW)
+                                    {
+                                        substr = new char[bytesToRW+1];
+                                        strncpy(substr, &it->data[blockOffset], bytesToRW);
+                                    }
+                                    else{
+                                        //data not in block
+                                    }
                                     cache.splice(cache.end(), cache, it);
+                                    return substr;
                                 }
                                 break;
                                 case 1:
@@ -2390,13 +2471,22 @@ class Cache
                                 {
                                     //LFU
                                     //increment frequency by 1
+                                    char* substr;
+                                    if((blockSize - blockOffset) >= bytesToRW)
+                                    {
+                                        substr = new char[bytesToRW];
+                                        strncpy(substr, &it->data[blockOffset], bytesToRW);
+                                    }else{
+                                        //for data not in block
+                                    }
                                     it->frequency += 1;
+                                    return substr;
                                 }
                             }
                         }
                         else{
                             //GO TO MAIN MEMORY
-                            return *(cache.end());
+                            return &nullData;
 
                         }
                     }
@@ -2446,11 +2536,12 @@ class Cache
                                     int min = (cache.begin())->FIFOindex;
                                     auto minIter = cache.begin(); 
                                     //find the first index
-                                    for(auto it:cache)
+                                    // for(auto it:cache)
+                                    for(auto it = cache.begin(); it != cache.end(); it++)
                                     {
-                                        if(it.FIFOindex < min)
+                                        if(it->FIFOindex < min)
                                         {
-                                            min = it.FIFOindex;
+                                            min = it->FIFOindex;
                                             minIter = it;
                                         }
                                     }
@@ -2464,9 +2555,26 @@ class Cache
                                 break;
                                 case 2:
                                 {
+                                    //find with least frequency
+                                    int min = (cache.begin())->frequency;
+                                    auto minIter = cache.begin(); 
+                                    //find the first index
+                                    // for(auto it:cache)
+                                    for(auto it = cache.begin(); it != cache.end(); it++)
+                                    {
+                                        if(it->frequency < min)
+                                        {
+                                            min = it->frequency;
+                                            minIter = it;
+                                        }
+                                    }
+                                    minIter->validBit = 1;
+                                    minIter->data = value;
+                                    minIter->tag = key;
+                                    minIter->recencyInfo = blockSize - 1;
                                     //LFU
                                     //increment frequency by 1
-                                    it->frequency += 1;
+                                    // minIter->frequency += 1;
                                 }
                             }
                         
@@ -2478,51 +2586,136 @@ class Cache
             }
           
         }
-        void SetAssosciative(int key, char *value, int index, int blockOffset, int RW)
+        char* SetAssosciative(int key, char *value, int index, int blockOffset, int RW, int bytesToRW)
         {
+            //multiplying so that we can go directly to the initial block of that set
             index = index*waysOfSetAssosc;
-            // for(auto it = cache.begin(); it != cache.end(); )
             auto it = cache.begin();
             advance(it, index);
+            auto endOfSet = next(it, setAssosciativity);
+            // for(auto it = cache.begin(); it != cache.end(); )
+
+            switch(RW)
             {
-                //checks if a set is empty
-                int setIsEmpty = -1;
-                auto temp = it;
-                //first place of the set
-                auto first = it;
-                //find an empty block there
-                auto endOfSet = next(first, setAssosciativity);
-                for(int i = 0; i < setAssosciativity; i++)
+                case 0:
                 {
-                    if(temp->validBit == 0)
+                    bool dataPresent = false;
+                    for(int i =0; i <setAssosciativity; i++)
                     {
-                        //value written in the empty block
-                        setIsEmpty = i;
-                        it->data = value;
-                        it->tag = key;
-                        it->validBit = 1;
-                        it->recencyInfo = 0;
-                        //move temp to the front of the set for LRU
-                        cache.splice(endOfSet, cache, temp);
-                        return;
+                        if(it->tag == key)
+                        {
+                            dataPresent = true;
+                            char *substr;
+                            if((blockSize - blockOffset) >= bytesToRW)
+                            {
+                                //for data present in single block
+                                substr = new char[bytesToRW];
+                                strncpy(substr, &it->data[blockOffset], bytesToRW);
+                            }
+                            return substr;
+                        }
                     }
-                    temp = next(temp);
+                    if(dataPresent == false)
+                    {
+                        //go to main memory
+                    }
                 }
-                //if setIsEmpty != -1 means we have an empty block
-        
-                //no empty block found now we evict the first block in the set
-                if(setIsEmpty == -1)
+                break;
+                case 1:
                 {
-                    temp->validBit = 1;
-                    temp->data = value;
-                    temp->tag = key;
-                    temp->recencyInfo = blockSize - 1;
-                    
-                    auto endOfSet = next(it, setAssosciativity);
-                    //on accessing put the cache block at the end; 
-                    cache.splice(endOfSet, cache, temp);
+                    {
+                        //checks if a set is empty
+                        int setIsEmpty = -1;
+                        auto temp = it;
+                        //first place of the set
+                        auto first = it;
+                        //find an empty block there
+                        auto endOfSet = next(first, setAssosciativity);
+                        for(int i = 0; i < setAssosciativity; i++)
+                        {
+                            if(temp->validBit == 0)
+                            {
+                                //value written in the empty block
+                                setIsEmpty = i;
+                                it->data = value;
+                                it->tag = key;
+                                it->validBit = 1;
+                                it->recencyInfo = 0;
+                                //move temp to the front of the set for LRU
+                                cache.splice(endOfSet, cache, temp);
+
+                                return &nullData;
+                            }
+                            temp = next(temp);
+                        }
+                        //if setIsEmpty != -1 means we have an empty block
+                
+                        //no empty block found now we evict the first block in the set
+                        if(setIsEmpty == -1)
+                        {
+                            switch(policy)
+                            {
+                                case 0:
+                                {
+                                    //lru
+                                    it->validBit = 1;
+                                    it->data = value;
+                                    it->tag = key;
+                                    it->recencyInfo = blockSize - 1;
+                                    
+                                
+                                    //on accessing put the cache block at the end; 
+                                    cache.splice(endOfSet, cache, it);
+                                }
+                                break;
+                                case 1:
+                                {
+                                    //fifo
+                                    int min = (it)->FIFOindex;
+                                    auto minIter = it; 
+                                    //find the first index
+                                    // for(auto it:cache)
+                                    for(auto iter = it; iter != endOfSet; iter++)
+                                    {
+                                        if(iter->FIFOindex < min)
+                                        {
+                                            min = iter->FIFOindex;
+                                            minIter = iter;
+                                        }
+                                    }
+                                    minIter->validBit = 1;
+                                    minIter->data = value;
+                                    minIter->tag = key;
+                                    minIter->recencyInfo = blockSize - 1;
+                                }
+                                break;
+                                case 2:
+                                {
+                                    //lfu
+                                    int min = (it)->frequency;
+                                    auto minIter = it; 
+                                    //find the first index
+                                    // for(auto it:cache)
+                                    for(auto iter = it; iter != endOfSet; iter++)
+                                    {
+                                        if(iter->frequency < min)
+                                        {
+                                            min = iter->frequency;
+                                            minIter = iter;
+                                        }
+                                    }
+                                    minIter->validBit = 1;
+                                    minIter->data = value;
+                                    minIter->tag = key;
+                                    minIter->recencyInfo = blockSize - 1;
+                                }
+                                break;
+                            }
+                            
+                        }
+                    }
                 }
-                advance(it, setAssosciativity);
+                break;
             }
         }
 
@@ -2540,17 +2733,21 @@ class Cache
                 BlockParameters block;
                 block.validBit = 0;
                 block.recencyInfo = 0;
-                block.data = (char *)malloc(sizeof(32));
+                block.data = new char[blockSize];
+                for(int i = 0; i < blockSize; i++)
+                {
+                    block.data[i] = '~';
+                }
                 block.tag = NULL;
                 block.FIFOindex = -1;
                 // cache.push_back(block);
                 currentSize = 0;
-                cout<<"We push"<<_capacity;
+                // cout<<"We push"<<_capacity;
                 cache.push_back(block);
             }
         };
 
-        BlockParameters get(int key, int index, int blockOffset) 
+        char* get(int key, int index, int blockOffset, int fullAddress, int bytesToRW) 
         {
             // if (block.find(key) != block.end()) {
             //     return block[key];
@@ -2561,42 +2758,45 @@ class Cache
 
                 case 0:
                 {
-                    return DirectMap(key, &na, index, blockOffset, 0);
+                    // cout<<"BOOOO"<<blockOffset;
+                    return DirectMap(key, &na, index, blockOffset, 0, bytesToRW);
                 }
                 break;
                 case 1:
                 {
-                    FullyAssosciative(key, &na, blockOffset, 0);
+                    FullyAssosciative(key, &na, blockOffset, 0, bytesToRW);
                 }
                 break;
                 case 2:
                 {
-                    SetAssosciative(key, &na, index, blockOffset, 0);
+                    SetAssosciative(key, &na, index, blockOffset, 0, bytesToRW);
                 }
             }
             miss++;
             // miss++;
             // return list<int>();
         }
-        void put(int key, char *value, int index, int blockOffset)
+        void put(int key, char *value, int index, int blockOffset, int fullAddress, int bytesToRW)
         {
             // if(0)
             //choose a mapping
+            // cout<<"BOO"<<blockOffset;
             switch(mapping)
             {
                 case 0:
                 {
-                    DirectMap(key, value, index, blockOffset, 1);
+                    // cout<<"block off is"<<blockOffset;
+                    DirectMap(key, value, index, blockOffset, 1, bytesToRW);
                 }
                 break;
                 case 1:
                 {
-                    FullyAssosciative(key, value, blockOffset, 1);
+                    FullyAssosciative(key, value, blockOffset, 1, bytesToRW);
                 }
                 break;
                 case 2:
                 {
-                    SetAssosciative(key, value, index, blockOffset, 1);
+                    SetAssosciative(key, value, index, blockOffset, 1, bytesToRW);
                 }
             }
         }
@@ -2622,8 +2822,7 @@ class Cache
         }
 };
 Cache cache(cacheSize, blockSize, policy, mapping, waysOfSetAssosc );
-void Placeholder_Name(char *data, int intAddress,
- int setData, int readWrite)
+char* Placeholder_Name(char *data, int intAddress, int readWrite, int bytesToRW)
 {
     bitset<32> address(intAddress);
     int numberOfBlocks = (cacheSize/blockSize);
@@ -2635,12 +2834,13 @@ void Placeholder_Name(char *data, int intAddress,
     int index = (mask&(intAddress>>blockOffsetBits));
     mask = (1<<blockOffsetBits) - 1;
     int blockOffset = (mask&intAddress);
+    // cout<<"BO"<<blockOffset;
 
-    cout<<"Tag address "<<tagAddress<<endl;
-    cout<<"Block offset bits "<<blockOffsetBits<<endl;
-    printf("number of blocks: %d \n", numberOfBlocks);
-    printf("block off-set bits: %d \n", blockOffset);
-    printf("index: %d \n", index);
+    // cout<<"Tag address "<<tagAddress<<endl;
+    // cout<<"Block offset bits "<<blockOffsetBits<<endl;
+    // printf("number of blocks: %d \n", numberOfBlocks);
+    // printf("block off-set bits: %d \n", blockOffset);
+    // printf("index: %d \n", index);
     
     switch (mapping)
     {
@@ -2673,11 +2873,12 @@ void Placeholder_Name(char *data, int intAddress,
     {
         //read
         case 0:
-            cache.get(targetAddressInt, index, blockOffset);
+            return cache.get(targetAddressInt, index, blockOffset, intAddress, bytesToRW);
             break;
         //write
         case 1:
-            cache.put(targetAddressInt, data, index, blockOffset);
+            cache.put(targetAddressInt, data, index, blockOffset, intAddress, bytesToRW);
+            return &nullData;
             break;
         default:
             break;
@@ -2712,13 +2913,14 @@ int main()
     cacheSize = 16;
     blockSize = 4;
     // char chr = 'a'; 
-    char chr2 = 'hello';
+    char chr2[5] = {'1','2','3','4','5'};
     // char *data = &chr;
-    char *data2 = &(chr2);
+    char *data2 = &(chr2[0]);
     //intialise cache capacity, policy
+    Placeholder_Name(data2, 21, 1, 3);
     // Placeholder_Name(data2, 56, 0, 1);/*OUTPUT 2*/
-    Placeholder_Name(data2, 28, 0, 1);
-    Placeholder_Name(data2, 28, 0, 0);
+    // Placeholder_Name(data2, 28, 0, 1, 0);
+    // Placeholder_Name(data2, 28, 0, 0, 0);
     // Placeholder_Name(data, 16, 0, 0);
     cache.show_cache();
     // init_NoOps();
