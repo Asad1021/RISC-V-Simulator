@@ -2475,39 +2475,47 @@ class Cache
                     block.recencyInfo = 0;
                     auto it = cache.begin();
                     advance(it, index);
-                    if((blockSize - blockOffset) >= bytesToRW)
+                    if(it->tag == key)
                     {
-                        // cout<<"Block size "<<blockOffset;
-                        // cout<<"Where";
-                        char* substr = new char[bytesToRW];
-                        memcpy(&it->data[blockOffset], value, bytesToRW);
+                        if((blockSize - blockOffset) >= bytesToRW)
+                        {
+                            // cout<<"Block size "<<blockOffset;
+                            // cout<<"Where";
+                            char* substr = new char[bytesToRW];
+                            memcpy(&it->data[blockOffset], value, bytesToRW);
+                        }
+                        else if((blockSize - blockOffset) < bytesToRW)
+                        {
+                            // char* substr1 = new char[blockSize-blockOffset];
+                            // char* substr2 = new char[bytesToRW - (blockSize-blockOffset)];
+                            char* finalStr = new char[bytesToRW];
+                            cout<<"block siz is "<<blockSize - blockOffset<<endl;
+                            // cout<<value[0]<<value[1]<<value[2];
+                            memcpy(&(it->data[blockOffset]), value, blockSize - blockOffset);
+                            if(index + 1 >= (cacheSize/blockSize))
+                            {
+                                //write in next block
+                                char *ptr = DirectMap(key + 1, value + (blockSize-blockOffset), 0, 0, 1,bytesToRW - (blockSize-blockOffset), fullAddress);
+                                // memcpy(&it->data[blockOffset], value + ((blockSize - blockOffset)), bytesToRW - (blockSize - blockOffset));
+                                // strncpy(finalStr, ptr,bytesToRW - (blockSize-blockOffset));
+                            }
+                            else if(index + 1 < (cacheSize/blockSize))
+                            {
+                                char *ptr = DirectMap(key, value + (blockSize-blockOffset), index + 1, 0, 1,bytesToRW - (blockSize-blockOffset), fullAddress);
+                                // strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
+                                // memcpy(&it->data[blockOffset], value + ((blockSize - blockOffset)),bytesToRW - (blockSize - blockOffset));
+                            }
+                            // cout<<"here is"<<*finalStr;
+                        }
+                        it->tag = key;
+                        it->validBit = 1;
+                        it->recencyInfo = blockSize -1;
+
                     }
-                    else if((blockSize - blockOffset) < bytesToRW)
+                    else
                     {
-                        // char* substr1 = new char[blockSize-blockOffset];
-                        // char* substr2 = new char[bytesToRW - (blockSize-blockOffset)];
-                        char* finalStr = new char[bytesToRW];
-                        cout<<"block siz is "<<blockSize - blockOffset<<endl;
-                        // cout<<value[0]<<value[1]<<value[2];
-                        memcpy(&(it->data[blockOffset]), value, blockSize - blockOffset);
-                        if(index + 1 >= (cacheSize/blockSize))
-                        {
-                            //write in next block
-                            char *ptr = DirectMap(key + 1, value + (blockSize-blockOffset), 0, 0, 1,bytesToRW - (blockSize-blockOffset), fullAddress);
-                            // memcpy(&it->data[blockOffset], value + ((blockSize - blockOffset)), bytesToRW - (blockSize - blockOffset));
-                            // strncpy(finalStr, ptr,bytesToRW - (blockSize-blockOffset));
-                        }
-                        else if(index + 1 < (cacheSize/blockSize))
-                        {
-                            char *ptr = DirectMap(key, value + (blockSize-blockOffset), index + 1, 0, 1,bytesToRW - (blockSize-blockOffset), fullAddress);
-                            // strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
-                            // memcpy(&it->data[blockOffset], value + ((blockSize - blockOffset)),bytesToRW - (blockSize - blockOffset));
-                        }
-                        // cout<<"here is"<<*finalStr;
+                        MainMemory::write(fullAddress, value, bytesToRW);
                     }
-                    it->tag = key;
-                    it->validBit = 1;
-                    it->recencyInfo = blockSize -1;
                     return &nullData;
                 }
             }
