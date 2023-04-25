@@ -1442,14 +1442,15 @@ class Memory_Access
                 break;
 
             case 2:
-                loaddata = *mem_add; // lw
+                // loaddata = *mem_add; // lw
                 bytesToRead = 4;
                 cout << "Loading word in register" << endl;
                 break;
             }
             // loaddata = readData(aluresult,storeloadop,0);
-            Placeholder_Name(&nullData, aluresult, 0, bytesToRead);
-            hs_ma_wb.loaded_mem = loaddata;
+            char * output = Placeholder_Name(&nullData, aluresult, 0, bytesToRead);
+            int * ptr = (int * ) output;
+            hs_ma_wb.loaded_mem = *ptr;
         }
         break;
         }
@@ -2358,6 +2359,7 @@ class Cache
 
         void WriteCache_FA(int blockSize, int blockOffset, int bytesToRW, list<struct BlockParameters>::iterator &it, char *value, int index, int key,int address)
         {
+            {
             // if((blockSize - blockOffset) >= bytesToRW)
             // {
             //     // cout<<"Block size "<<blockOffset;
@@ -2399,7 +2401,8 @@ class Cache
             //         break;
             //     }
             // }
-
+}
+            MainMemory::write(address,value,bytesToRW);
             // if (isHit)
             // {
                 if((blockSize - blockOffset) >= bytesToRW)
@@ -2408,7 +2411,6 @@ class Cache
                     // cout<<"Where";
                     char* substr = new char[bytesToRW];
                     memcpy(&it->data[blockOffset], value, bytesToRW);
-                    MainMemory::write(address,value,bytesToRW);
                 }
                 else if((blockSize - blockOffset) < bytesToRW)
                 {
@@ -2421,9 +2423,26 @@ class Cache
                     //write remaining bits to the memory
 
                     // address+=blockSize-blockOffset;
-                    MainMemory::write(address,value,bytesToRW);//putting remaining bytes in memory
-                }
-                
+                    it = cache.begin();//writing the remaining bits if the address is present in the cache
+                    int newAdd = address + (blockSize-blockOffset);
+                    for ( ; it!=cache.end(); it++)
+                    {
+                        if(it->tag == newAdd)
+                        {
+                            int numberOfBlocks = (cacheSize/blockSize);
+                            int blockOffsetBits = log2(blockSize); //2
+                            int indexBits = log2(numberOfBlocks);  //2
+                            int mask = (1<<indexBits) - 1;
+                            int tagAddress = address>>blockOffsetBits>>indexBits;
+                            // cout<<"int address"<<(intAddress>>blockOffsetBits);
+                            int index = (mask&(newAdd>>blockOffsetBits));
+                            mask = (1<<blockOffsetBits) - 1;
+                            int blockOffset = (mask&newAdd);
+                            WriteCache_FA(blockSize, blockOffset, bytesToRW - (blockSize-blockOffset), it, value + (blockSize-blockOffset), 0, tagAddress, newAdd);
+                            break;
+                        }
+                    }
+                }                
             // }
             // else//wrtite in memory
             // {
