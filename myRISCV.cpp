@@ -2268,7 +2268,7 @@ static class MainMemory
 {
     private:
 
-    void Write(int address, char *value,int bytesToWrite)
+    static void Write(int address, char *value,int bytesToWrite)
     {
         for (int i = 0; i < bytesToWrite; i++)
         {
@@ -2287,7 +2287,7 @@ static class MainMemory
     }
 
     public:
-    void write(int address, char *values,int bytesToWrite)
+    static void write(int address, char *values,int bytesToWrite)
     {
         // int EffectiveAddress;//will store the address from where the block starts
         // EffectiveAddress = address - address % blockSize;//removing last log2(Blocksize) bits
