@@ -2268,7 +2268,7 @@ class MainMemory
 {
     private:
 
-    void Write(int address, char *value)
+    static void Write(int address, char *value)
     {
         for (int i = 0; i < blockSize; i++)
         {
@@ -2277,7 +2277,7 @@ class MainMemory
         return;
     }
 
-    void Read(int address,char *Output)
+    static void Read(int address,char *Output)
     {
         for (int i = 0; i < blockSize; i++)
         {
@@ -2287,7 +2287,7 @@ class MainMemory
     }
 
     public:
-    void write(int address, char *values)
+    static void write(int address, char *values)
     {
         int EffectiveAddress;//will store the address from where the block starts
         EffectiveAddress = address - address % blockSize;//removing last log2(Blocksize) bits
@@ -2295,7 +2295,7 @@ class MainMemory
         return;
     }
 
-    BlockParameters read(int address,int tag)//this will return a block filled with data
+    static BlockParameters read(int address,int tag)//this will return a block filled with data
     {
         int EffectiveAddress;//will store the address from where the block starts
         char Output[blockSize];
@@ -2353,6 +2353,7 @@ class Cache
         Full Assoc (1)
         Set Assoc (2),*/
         int mapping;
+        unordered_map<int , bool> misstable;
         void WriteCache_FA(int blockSize, int blockOffset, int bytesToRW, list<struct BlockParameters>::iterator &it, char *value, int index, int key,int address)
         {
             // if((blockSize - blockOffset) >= bytesToRW)
@@ -2407,8 +2408,8 @@ class Cache
                 }
             }
             else//wrtite in memory
-            {
-                MainMemory.Write(address, value);
+            { 
+                MainMemory::write(address, value);
             }
             
 
@@ -2513,6 +2514,7 @@ class Cache
         void LFU_Evict(int fullAddress, int tag)
         {
             auto minIter = cache.begin(); 
+            int min = minIter->frequency;
             for(auto it = cache.begin(); it != cache.end(); it++)
             {
                 if(it->frequency < min)
@@ -2521,8 +2523,8 @@ class Cache
                     minIter = it;
                 }
             }
-            MainMemory m1 ;
-            minIter->data  = m1.read(fullAddress, tag).data;
+            
+            minIter->data  = MainMemory::read(fullAddress, tag).data;
 
         }
         char* FullyAssosciative(int key, char *value, int blockOffset, int index, int RW, int bytesToRW, int fullAddress)
@@ -2600,12 +2602,12 @@ class Cache
 
                                         if(index + 1 >= (cacheSize/blockSize))
                                         {
-                                            char *ptr = FullyAssosciative(key + 1, &nullData, 0, 0, 0,bytesToRW - (blockSize-blockOffset));
+                                            char *ptr = FullyAssosciative(key + 1, &nullData, 0, 0, 0,bytesToRW - (blockSize-blockOffset), fullAddress);
                                             strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
                                         }
                                         else if(index + 1 < (cacheSize/blockSize))
                                         {
-                                            char *ptr = FullyAssosciative(key, &nullData, index + 1, 0, 0,bytesToRW - (blockSize-blockOffset));
+                                            char *ptr = FullyAssosciative(key, &nullData, index + 1, 0, 0,bytesToRW - (blockSize-blockOffset), fullAddress);
                                             strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
                                         }
                                         return finalStr;
@@ -2620,12 +2622,12 @@ class Cache
                             //GO TO MAIN MEMORY
                             if(LFU)
                             {   
-                                LFU_Evict();
+                                LFU_Evict(fullAddress, key);
                             }
                             else 
                             {
-                                MainMemory m1 ;
-                                it->data = m1.read().data;
+                                
+                                it->data = MainMemory::read(fullAddress, key).data;
                             }
                             // cache.begin = m1.read();
                             return &nullData;
@@ -2671,7 +2673,7 @@ class Cache
                                     // it->recencyInfo = blockSize - 1;
                                     // cout<<"\n\n\n";
                                     cache.splice(cache.end(), cache, it);
-                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, it, value, index, key);
+                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, it, value, index, key, fullAddress);
                                     //on accessing put the cache block at the end; 
                                 }
                                 break;
@@ -2691,7 +2693,7 @@ class Cache
                                         }
                                     }
                                     minIter->FIFOindex += 1 ;
-                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, minIter, value, index, key);
+                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, minIter, value, index, key, fullAddress);
                                     // minIter->validBit = 1;
                                     // minIter->tag = key;
 
@@ -2720,7 +2722,7 @@ class Cache
                                     //LFU
                                     //increment frequency by 1
                                     minIter->frequency += 1;
-                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, minIter, value, index, key);
+                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, minIter, value, index, key, fullAddress);
 
                                 }
                             }
@@ -2732,7 +2734,7 @@ class Cache
                 }
             }
         }
-        char* SetAssosciative(int key, char *value, int index, int blockOffset, int RW, int bytesToRW)
+        char* SetAssosciative(int key, char *value, int index, int blockOffset, int RW, int bytesToRW, int fullAddress)
         {
             //multiplying so that we can go directly to the initial block of that set
             index = index*waysOfSetAssosc;
@@ -2814,7 +2816,7 @@ class Cache
                                 
                                     //on accessing put the cache block at the end; 
                                     // WriteCache_FA(blockSize, blockOffset);
-                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, it, value, index, key);
+                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, it, value, index, key, fullAddress);
                                     cache.splice(endOfSet, cache, it);
                                 }
                                 break;
@@ -2829,7 +2831,7 @@ class Cache
                                     {
                                         if(iter->validBit == 0)
                                         {
-                                            WriteCache_FA(blockSize, blockOffset, bytesToRW, iter, value, index, key);
+                                            WriteCache_FA(blockSize, blockOffset, bytesToRW, iter, value, index, key, fullAddress);
                                             minIter->validBit = 1;
                                             minIter->tag = key;
                                             minIter->recencyInfo = blockSize - 1;
@@ -2837,7 +2839,7 @@ class Cache
                                         }
                                     }
                                     //replace the first block in set assosc
-                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, it, value, index, key);
+                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, it, value, index, key, fullAddress);
 
                                     // cache.splice(endOfSet, cache, it);
                                 }
@@ -2857,7 +2859,7 @@ class Cache
                                             minIter = iter;
                                         }
                                     }
-                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, minIter, value, index, key);
+                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, minIter, value, index, key, fullAddress);
                                     minIter->validBit = 1;
                                     minIter->frequency += 1;
                                     minIter->tag = key;
@@ -2923,7 +2925,7 @@ class Cache
                 break;
                 case 2:
                 {
-                    return SetAssosciative(key, &na, index, blockOffset, 0, bytesToRW);
+                    return SetAssosciative(key, &na, index, blockOffset, 0, bytesToRW, fullAddress);
                 }
             }
             // miss++;
@@ -2945,12 +2947,12 @@ class Cache
                 break;
                 case 1:
                 {
-                    FullyAssosciative(key, value, blockOffset, index, 1, bytesToRW);
+                    FullyAssosciative(key, value, blockOffset, index, 1, bytesToRW, fullAddress);
                 }
                 break;
                 case 2:
                 {
-                    SetAssosciative(key, value, index, blockOffset, 1, bytesToRW);
+                    SetAssosciative(key, value, index, blockOffset, 1, bytesToRW, fullAddress);
                 }
             }
         }
@@ -3074,7 +3076,7 @@ int main()
     DataForwarding = false;
     printRegFile = true;
     printPipe = true;
-    miss = 0;
+    //miss = 0;
     cacheSize = 16;
     blockSize = 4;
     // char chr = 'a'; 
