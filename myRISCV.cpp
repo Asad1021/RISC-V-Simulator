@@ -152,6 +152,7 @@ bool printRegFile;
 bool printPipe;
 bool DataForwarding;
 int offset = 0;
+
 int blockSize = 4; /*BYTES*/
 
 
@@ -174,6 +175,17 @@ bitset<32> nextPCAdd_Pipe(0);
 bitset<32> currentInstruction;
 bitset<32> *instructions;
 char InstMem[INSTMEM_SIZE];
+
+struct BlockParameters
+{
+    int tag; 
+    char *data;
+    int validBit;
+    int recencyInfo;
+    int frequency;
+    int FIFOindex;
+};
+
 
 // bool HaltIF;
 // if this instruction is read then program exits
@@ -2283,12 +2295,20 @@ class MainMemory
         return;
     }
 
-    void read(int address, char *Output)//this will populate the array output from the memarray
+    BlockParameters read(int address,int tag)//this will return a block filled with data
     {
         int EffectiveAddress;//will store the address from where the block starts
+        char Output[blockSize];
+        struct BlockParameters block;
+
         EffectiveAddress = address - address % blockSize;//removing last log2(Blocksize) bits
-        Read(EffectiveAddress, Output);        
-        return;
+        Read(EffectiveAddress, Output);
+        block.data = Output;
+        block.tag = tag;
+        block.validBit=1;
+        block.frequency=0;
+
+        return block;
     }
 };
 
@@ -2317,15 +2337,6 @@ int coldmisses = 0;
 int conflictmisses = 0;
 int capacitymisses = 0;
 
-struct BlockParameters
-{
-    int tag; 
-    char *data;
-    int validBit;
-    int recencyInfo;
-    int frequency;
-    int FIFOindex;
-};
 
 class Cache 
 {
@@ -2665,7 +2676,6 @@ class Cache
                     }
                 }
             }
-          
         }
         char* SetAssosciative(int key, char *value, int index, int blockOffset, int RW, int bytesToRW)
         {
