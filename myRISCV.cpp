@@ -2353,6 +2353,7 @@ class Cache
         Full Assoc (1)
         Set Assoc (2),*/
         int mapping;
+        unordered_map<int, bool> misstable;
         void WriteCache(int blockSize, int blockOffset, int bytesToRW, list<struct BlockParameters>::iterator &it, char *value, int index, int key)
         {
             if((blockSize - blockOffset) >= bytesToRW)
