@@ -2328,7 +2328,7 @@ int FIFOindex = 0;;
 int policy = LRU; 
 //0 = direct mapping
 //1 = fully assosc
-int mapping = FULLY_ASSOS;
+int mapping = DIRECT;
 int waysOfSetAssosc = 2;
 
 int misses = 0;
@@ -2414,7 +2414,7 @@ class Cache
             
 
         }
-        char* DirectMap(int key, char *value, int index, int blockOffset, int RW, int bytesToRW)
+        char* DirectMap(int key, char *value, int index, int blockOffset, int RW, int bytesToRW, int fullAddress)
         {
             // cout<<"bloo"<<blockOffset;
             switch (RW)
@@ -2443,12 +2443,12 @@ class Cache
 
                             if(index + 1 >= (cacheSize/blockSize))
                             {
-                                char *ptr = DirectMap(key + 1, &nullData, 0, 0, 0,bytesToRW - (blockSize-blockOffset));
+                                char *ptr = DirectMap(key + 1, &nullData, 0, 0, 0,bytesToRW - (blockSize-blockOffset), fullAddress);
                                 strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
                             }
                             else if(index + 1 < (cacheSize/blockSize))
                             {
-                                char *ptr = DirectMap(key, &nullData, index + 1, 0, 0,bytesToRW - (blockSize-blockOffset));
+                                char *ptr = DirectMap(key, &nullData, index + 1, 0, 0,bytesToRW - (blockSize-blockOffset), fullAddress);
                                 strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
                             }
                             return finalStr;
@@ -2459,9 +2459,11 @@ class Cache
                     {
                         cout<<"Get from main memory";
                         misses++;
-                        return &nullData;
+                        it->data = MainMemory::read(fullAddress, key).data;
+
                         // return MainMemory.w
                     }
+                    return &nullData;
                 }
                 break;
                 case 1:
@@ -2491,13 +2493,13 @@ class Cache
                         if(index + 1 >= (cacheSize/blockSize))
                         {
                             //write in next block
-                            char *ptr = DirectMap(key + 1, value + (blockSize-blockOffset), 0, 0, 1,bytesToRW - (blockSize-blockOffset));
+                            char *ptr = DirectMap(key + 1, value + (blockSize-blockOffset), 0, 0, 1,bytesToRW - (blockSize-blockOffset), fullAddress);
                             // memcpy(&it->data[blockOffset], value + ((blockSize - blockOffset)), bytesToRW - (blockSize - blockOffset));
                             // strncpy(finalStr, ptr,bytesToRW - (blockSize-blockOffset));
                         }
                         else if(index + 1 < (cacheSize/blockSize))
                         {
-                            char *ptr = DirectMap(key, value + (blockSize-blockOffset), index + 1, 0, 1,bytesToRW - (blockSize-blockOffset));
+                            char *ptr = DirectMap(key, value + (blockSize-blockOffset), index + 1, 0, 1,bytesToRW - (blockSize-blockOffset), fullAddress);
                             // strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
                             // memcpy(&it->data[blockOffset], value + ((blockSize - blockOffset)),bytesToRW - (blockSize - blockOffset));
                         }
@@ -2511,11 +2513,11 @@ class Cache
             }
 
         }
-        void LFU_Evict(int fullAddress, int tag)
+        void LFU_Evict(int fullAddress, int tag, list<BlockParameters>::iterator startOfSet, list<BlockParameters>::iterator endOfSet)
         {
-            auto minIter = cache.begin(); 
+            auto minIter = startOfSet; 
             int min = minIter->frequency;
-            for(auto it = cache.begin(); it != cache.end(); it++)
+            for(auto it = startOfSet; it != endOfSet; it++)
             {
                 if(it->frequency < min)
                 {
@@ -2525,7 +2527,12 @@ class Cache
             }
             
             minIter->data  = MainMemory::read(fullAddress, tag).data;
-
+        }
+        void LRU_Evict(int fullAddress, int tag, list<BlockParameters>::iterator startOfSet, list<BlockParameters>::iterator endOfSet)
+        {
+            auto minIter = startOfSet; 
+            cache.splice(endOfSet, cache, minIter);
+            minIter->data  = MainMemory::read(fullAddress, tag).data;
         }
         char* FullyAssosciative(int key, char *value, int blockOffset, int index, int RW, int bytesToRW, int fullAddress)
         {
@@ -2564,12 +2571,12 @@ class Cache
 
                                         if(index + 1 >= (cacheSize/blockSize))
                                         {
-                                            char *ptr = DirectMap(key + 1, &nullData, 0, 0, 0,bytesToRW - (blockSize-blockOffset));
+                                            char *ptr = DirectMap(key + 1, &nullData, 0, 0, 0,bytesToRW - (blockSize-blockOffset), fullAddress);
                                             strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
                                         }
                                         else if(index + 1 < (cacheSize/blockSize))
                                         {
-                                            char *ptr = DirectMap(key, &nullData, index + 1, 0, 0,bytesToRW - (blockSize-blockOffset));
+                                            char *ptr = DirectMap(key, &nullData, index + 1, 0, 0,bytesToRW - (blockSize-blockOffset), fullAddress);
                                             strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
                                         }
                                     }
@@ -2620,9 +2627,9 @@ class Cache
                         else{
                             //miss
                             //GO TO MAIN MEMORY
-                            if(LFU)
+                            if(policy == LFU)
                             {   
-                                LFU_Evict(fullAddress, key);
+                                LFU_Evict(fullAddress, key, cache.begin(), cache.end());
                             }
                             else 
                             {
@@ -2740,7 +2747,7 @@ class Cache
             index = index*waysOfSetAssosc;
             auto it = cache.begin();
             advance(it, index);
-            auto endOfSet = next(it, setAssosciativity);
+            auto endOfSet = next(it, setAssosciativity - 1);
             // for(auto it = cache.begin(); it != cache.end(); )
 
             switch(RW)
@@ -2767,6 +2774,18 @@ class Cache
                     if(dataPresent == false)
                     {
                         //go to main memory
+                        switch (policy)
+                        {
+                        case LFU:
+                            LFU_Evict(fullAddress, key, it, endOfSet);
+                            break;
+                        case LRU:
+                            LRU_Evict(fullAddress,key, it, endOfSet);
+                        default:
+                            break;
+                        }
+                         // LFU(fullAddress, key);
+                        // it->data = MainMemory::read(fullAddress, key);
                         misses++;
                     }
                 }
@@ -2915,7 +2934,7 @@ class Cache
                 case 0:
                 {
                     // cout<<"BOOOO"<<blockOffset;
-                    return DirectMap(key, &na, index, blockOffset, 0, bytesToRW);
+                    return DirectMap(key, &na, index, blockOffset, 0, bytesToRW, fullAddress);
                 }
                 break;
                 case 1:
@@ -2942,7 +2961,7 @@ class Cache
                 case 0:
                 {
                     // cout<<"block off is"<<blockOffset;
-                    DirectMap(key, value, index, blockOffset, 1, bytesToRW);
+                    DirectMap(key, value, index, blockOffset, 1, bytesToRW, fullAddress);
                 }
                 break;
                 case 1:
@@ -3091,8 +3110,8 @@ int main()
     char *data4 = &(chr4[0]);
 
     //intialise cache capacity, policy
-    Placeholder_Name(data2, 56, 1, 3);/*OUTPUT 2*/
-    cache.show_cache();
+    // Placeholder_Name(data2, 56, 1, 3);/*OUTPUT 2*/
+    // cache.show_cache();
     char *charray = Placeholder_Name(data2, 56, 0, 3);/*OUTPUT 2*/
     cache.show_cache();
     // Placeholder_Name(data3, 29, 1, 3);
@@ -3107,7 +3126,7 @@ int main()
     // charray++;
     // charray++;
 
-    cout<<*(++charray);
+    cout<<*(charray);
     // init_NoOps();
     // make_file();
     // RISCv_Processor();
