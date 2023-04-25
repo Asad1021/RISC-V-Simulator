@@ -2297,17 +2297,18 @@ class MainMemory
 
 
 #pragma region CACHE
-    
+enum POLICY {LRU, FIFO, LFU};
+enum MAPPING {DIRECT, FULLY_ASSOS, SET_ASSOSC};
 int cacheSize = 16; /*BYTES*/  
 // int blockSize = 4; /*BYTES*/
 int miss;
 int FIFOindex = 0;;
 //1 = fifo
 //0 = lru
-int policy = 0; 
+int policy = LFU; 
 //0 = direct mapping
 //1 = fully assosc
-int mapping = 1;
+int mapping = FULLY_ASSOS;
 int waysOfSetAssosc = 2;
 
 struct BlockParameters
@@ -2335,7 +2336,7 @@ class Cache
         Full Assoc (1)
         Set Assoc (2),*/
         int mapping;
-        void WriteCache(int blockSize, int blockOffset, int bytesToRW, list<struct BlockParameters>::iterator &it, char *value, int index, int key)
+        void WriteCache_FA(int blockSize, int blockOffset, int bytesToRW, list<struct BlockParameters>::iterator &it, char *value, int index, int key)
         {
             if((blockSize - blockOffset) >= bytesToRW)
             {
@@ -2355,7 +2356,7 @@ class Cache
                 if(index + 1 >= (cacheSize/blockSize))
                 {
                     //write in next block
-                    char *ptr = FullyAssosciative(key + 1, value + (blockSize-blockOffset), 0, 0, 1,bytesToRW - (blockSize-blockOffset));
+                    char *ptr = FullyAssosciative(key, value + (blockSize-blockOffset), 0, 0, 1,bytesToRW - (blockSize-blockOffset));
                     // memcpy(&it->data[blockOffset], value + ((blockSize - blockOffset)), bytesToRW - (blockSize - blockOffset));
                     // strncpy(finalStr, ptr,bytesToRW - (blockSize-blockOffset));
                 }
@@ -2367,6 +2368,7 @@ class Cache
                 }
                 // cout<<"here is"<<*finalStr;
             }
+
         }
         char* DirectMap(int key, char *value, int index, int blockOffset, int RW, int bytesToRW)
         {
@@ -2559,26 +2561,27 @@ class Cache
                 case 1:
                 {
                             // for(list<struct BranchParameters>::iterator it :cache)
-                    for(auto it = cache.begin(); it != cache.end(); ++it)
+                    // for(auto it = cache.begin(); it != cache.end(); ++it)
+                    auto it = cache.begin();
                     {
                         //check for an empty block
-                        if(it->validBit == 0)
+                        // if(it->validBit == 0)
                         {
                             it->validBit = 1;
-                            WriteCache(blockSize, blockOffset, bytesToRW, it, value, index, key);
                             it->tag = key;
                             it->recencyInfo = blockSize - 1;
-                            it->FIFOindex = (FIFOindex++);
+                            // it->FIFOindex = (FIFOindex++);
                             //on accessing put the cache block at the end; 
-                            cache.splice(cache.end(), cache, it);
+                            // cout<<"WHerheh h";
+                            // cache.splice(cache.end(), cache, it);
+                            // WriteCache(blockSize, blockOffset, bytesToRW, it, value, index, key);
                             validBitPresent = true;
-                            break;
+                            // break;
                         }
                     }
                     //case where it is full
-                    if(!validBitPresent)
+                    // if(0)
                     {
-                        //EVICTION
                         switch(policy)
                             {
                                 case 0:
@@ -2586,13 +2589,14 @@ class Cache
                                     //LRU
                                     //we evict the first from the cache list which is the LRU
                                     auto it = cache.begin();
-                                    it->validBit = 1;
-                                    it->data = value;
-                                    it->tag = key;
-                                    it->recencyInfo = blockSize - 1;
-                                    WriteCache(blockSize, blockOffset, bytesToRW, it, value, index, key);
-                                    //on accessing put the cache block at the end; 
+                                    // it->validBit = 1;
+                                    // it->data = value;
+                                    // it->tag = key;
+                                    // it->recencyInfo = blockSize - 1;
+                                    // cout<<"\n\n\n";
                                     cache.splice(cache.end(), cache, it);
+                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, it, value, index, key);
+                                    //on accessing put the cache block at the end; 
                                 }
                                 break;
                                 case 1:
@@ -2610,10 +2614,10 @@ class Cache
                                             minIter = it;
                                         }
                                     }
-                                    WriteCache(blockSize, blockOffset, bytesToRW, minIter, value, index, key);
-                                    minIter->validBit = 1;
-                                    minIter->tag = key;
-                                    minIter->recencyInfo = blockSize - 1;
+                                    minIter->FIFOindex += 1 ;
+                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, minIter, value, index, key);
+                                    // minIter->validBit = 1;
+                                    // minIter->tag = key;
 
 
                                 }
@@ -2633,13 +2637,15 @@ class Cache
                                             minIter = it;
                                         }
                                     }
-                                    minIter->validBit = 1;
-                                    WriteCache(blockSize, blockOffset, bytesToRW, minIter, value, index, key);
-                                    minIter->tag = key;
-                                    minIter->recencyInfo = blockSize - 1;
+                                    // minIter->validBit = 1;
+                                    // WriteCache(blockSize, blockOffset, bytesToRW, minIter, value, index, key);
+                                    // minIter->tag = key;
+                                    // minIter->recencyInfo = blockSize - 1;
                                     //LFU
                                     //increment frequency by 1
-                                    // minIter->frequency += 1;
+                                    minIter->frequency += 1;
+                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, minIter, value, index, key);
+
                                 }
                             }
                         
@@ -2901,11 +2907,11 @@ char* Placeholder_Name(char *data, int intAddress, int readWrite, int bytesToRW)
     int blockOffset = (mask&intAddress);
     // cout<<"BO"<<blockOffset;
 
-    cout<<"Tag address "<<tagAddress<<endl;
-    cout<<"Block offset bits "<<blockOffsetBits<<endl;
-    printf("number of blocks: %d \n", numberOfBlocks);
-    printf("block off-set bits: %d \n", blockOffset);
-    printf("index: %d \n", index);
+    // cout<<"Tag address "<<tagAddress<<endl;
+    // cout<<"Block offset bits "<<blockOffsetBits<<endl;
+    // printf("number of blocks: %d \n", numberOfBlocks);
+    // printf("block off-set bits: %d \n", blockOffset);
+    // printf("index: %d \n", index);
     
     switch (mapping)
     {
@@ -2979,13 +2985,20 @@ int main()
     blockSize = 4;
     // char chr = 'a'; 
     char chr2[5] = {'1','2','3','4','5'};
+    char chr3[5] = {'!','@','#','$','%'};
+    char chr4[5] = {'a','b','c','d','e'};
+
+
     // char *data = &chr;
     char *data2 = &(chr2[0]);
+    char *data3 = &(chr3[0]);
+    char *data4 = &(chr4[0]);
+
     //intialise cache capacity, policy
     Placeholder_Name(data2, 56, 1, 3);/*OUTPUT 2*/
-    Placeholder_Name(data2, 29, 1, 3);
-    Placeholder_Name(data2, 19, 1, 5);
-    Placeholder_Name(data2, 18, 1, 5);
+    Placeholder_Name(data3, 29, 1, 3);
+    Placeholder_Name(data4, 19, 1, 5);
+    // Placeholder_Name(data2, 101, 1, 3);
     // Placeholder_Name(data2, 18, 1, 5);
     // Placeholder_Name(data2, 10, 1, 5);
 
