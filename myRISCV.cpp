@@ -2300,7 +2300,7 @@ class MainMemory
     
 int cacheSize = 16; /*BYTES*/  
 // int blockSize = 4; /*BYTES*/
-int miss;
+//int miss;
 int FIFOindex = 0;;
 //1 = fifo
 //0 = lru
@@ -2309,6 +2309,12 @@ int policy = 0;
 //1 = fully assosc
 int mapping = 1;
 int waysOfSetAssosc = 2;
+
+int misses = 0;
+int hits = 0;
+int coldmisses = 0;
+int conflictmisses = 0;
+int capacitymisses = 0;
 
 struct BlockParameters
 {
@@ -2335,6 +2341,7 @@ class Cache
         Full Assoc (1)
         Set Assoc (2),*/
         int mapping;
+        unordered_map <int, bool> misstable;
         void WriteCache(int blockSize, int blockOffset, int bytesToRW, list<struct BlockParameters>::iterator &it, char *value, int index, int key)
         {
             if((blockSize - blockOffset) >= bytesToRW)
@@ -2382,6 +2389,7 @@ class Cache
                     if(it->tag == key)
                     {
                         cout<<"Data found";
+                        hits++;
                         // return *it;
                         if((blockSize - blockOffset) >= bytesToRW)
                         {
@@ -2410,6 +2418,7 @@ class Cache
                     else
                     {
                         cout<<"Get from main memory";
+                        misses++;
                         return &nullData;
                     }
                 }
@@ -2475,6 +2484,7 @@ class Cache
                         {
                             //on accessing put the cache block at the end; 
                             //LRU
+                            hits++;
                             switch(policy)
                             {
                                 case 0:
@@ -2550,6 +2560,7 @@ class Cache
                         }
                         else{
                             //GO TO MAIN MEMORY
+                            misses++;
                             return &nullData;
 
                         }
@@ -2669,6 +2680,7 @@ class Cache
                     {
                         if(it->tag == key)
                         {
+                            hits++;
                             dataPresent = true;
                             char *substr;
                             if((blockSize - blockOffset) >= bytesToRW)
@@ -2683,6 +2695,7 @@ class Cache
                     if(dataPresent == false)
                     {
                         //go to main memory
+                        misses++;
                     }
                 }
                 break;
@@ -2820,7 +2833,7 @@ class Cache
             char na = '~';
             switch(mapping)
             {
-
+                misstable[fullAddress] = true;
                 case 0:
                 {
                     // cout<<"BOOOO"<<blockOffset;
@@ -2837,7 +2850,6 @@ class Cache
                     SetAssosciative(key, &na, index, blockOffset, 0, bytesToRW);
                 }
             }
-            miss++;
             // miss++;
             // return list<int>();
         }
@@ -2848,6 +2860,7 @@ class Cache
             // cout<<"BOO"<<blockOffset;
             switch(mapping)
             {
+                misstable[fullAddress] = true;
                 case 0:
                 {
                     // cout<<"block off is"<<blockOffset;
@@ -2884,6 +2897,17 @@ class Cache
         int size() 
         {
             return cache.size();
+        }
+
+        void typeofmiss(int fulladdress, int key, int index){
+            if(misstable.find(fulladdress)==misstable.end()){
+                coldmisses++; 
+            }else{
+                if(misstable[fulladdress]==false){
+                    conflictmisses++;
+                }
+            }
+            capacitymisses = misses - coldmisses - conflictmisses;
         }
 };
 Cache cache(cacheSize, blockSize, policy, mapping, waysOfSetAssosc );
