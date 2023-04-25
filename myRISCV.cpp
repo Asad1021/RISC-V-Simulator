@@ -2597,12 +2597,234 @@ class Cache
 
                                         if(index + 1 >= (cacheSize/blockSize))
                                         {
-                                            char *ptr = DirectMap(key + 1, &nullData, 0, 0, 0,bytesToRW - (blockSize-blockOffset), fullAddress);
+                                            char *ptr = FullyAssosciative(key + 1, &nullData, 0, 0, 0,bytesToRW - (blockSize-blockOffset), fullAddress);
                                             strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
                                         }
                                         else if(index + 1 < (cacheSize/blockSize))
                                         {
-                                            char *ptr = DirectMap(key, &nullData, index + 1, 0, 0,bytesToRW - (blockSize-blockOffset), fullAddress);
+                                            char *ptr = FullyAssosciative(key, &nullData, index + 1, 0, 0,bytesToRW - (blockSize-blockOffset), fullAddress);
+                                            strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
+                                        }
+                                    }
+                                    // cache.splice(cache.end(), cache, it);
+                                    return substr;
+                                }
+                                break;
+                                case 1:
+                                {
+                                    //FIFO
+                                    //NOTHING HAPPENS
+                                }
+                                break;
+                                case 2:
+                                {
+                                    //LFU
+                                    //increment frequency by 1
+                                    char *substr;
+                                    if((blockSize - blockOffset) >= bytesToRW)
+                                    {
+                                        it->frequency += 1;
+                                        substr = new char[bytesToRW+1];
+                                        strncpy(substr, &it->data[blockOffset], bytesToRW);
+                                        return substr;
+                                    }
+                                    else if((blockSize - blockOffset) < bytesToRW)
+                                    {
+                                        //data not in block
+                                        it->frequency += 1;
+                                        char* finalStr = new char[bytesToRW];
+                                        strncpy(finalStr, &it->data[blockOffset],(blockSize-blockOffset));
+
+                                        if(index + 1 >= (cacheSize/blockSize))
+                                        {
+                                            char *ptr = FullyAssosciative(key + 1, &nullData, 0, 0, 0,bytesToRW - (blockSize-blockOffset), fullAddress);
+                                            strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
+                                        }
+                                        else if(index + 1 < (cacheSize/blockSize))
+                                        {
+                                            char *ptr = FullyAssosciative(key, &nullData, index + 1, 0, 0,bytesToRW - (blockSize-blockOffset), fullAddress);
+                                            strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
+                                        }
+                                        return finalStr;
+                                    }
+                                    return substr;
+                                }
+                            }
+                        }
+                        else{
+                            //miss
+                            //GO TO MAIN MEMORY
+                            if(policy == LFU)
+                            {   
+                                LFU_Evict(fullAddress, key, cache.begin(), cache.end());
+                                misstable[fullAddress] = false;
+                            }
+                            else 
+                            {
+                                
+                                it->data = MainMemory::read(fullAddress, key).data;
+                            }
+                            // cache.begin = m1.read();
+                            return &nullData;
+                        }
+                    }
+                    return &nullData;
+                }
+                break;
+                case 1:
+                {
+                    for(auto it = cache.begin(); it != cache.end(); ++it)
+                    {
+                        if(it->tag == key)
+                        {
+                            WriteCache_FA(blockSize, blockOffset, bytesToRW, it, value, index, key, fullAddress);;
+                            return &nullData;
+                        }
+                    }
+                    MainMemory::write(fullAddress, value, bytesToRW);
+                            // for(list<struct BranchParameters>::iterator it :cache)
+                    // auto it = cache.begin();
+                    // {
+                    //     //check for an empty block
+                    //     // if(it->validBit == 0)
+                    //     {
+                    //         it->validBit = 1;
+                    //         it->tag = key;
+                    //         it->recencyInfo = blockSize - 1;
+                    //         // it->FIFOindex = (FIFOindex++);
+                    //         //on accessing put the cache block at the end; 
+                    //         // cout<<"WHerheh h";
+                    //         // cache.splice(cache.end(), cache, it);
+                    //         // WriteCache(blockSize, blockOffset, bytesToRW, it, value, index, key);
+                    //         validBitPresent = true;
+                    //         // break;
+                    //     }
+                    // }
+                    // //case where it is full
+                    // // if(0)
+                    // {
+                    //     switch(policy)
+                    //         {
+                    //             case LRU:
+                    //             {
+                    //                 //LRU
+                    //                 //we evict the first from the cache list which is the LRU
+                    //                 auto it = cache.begin();
+                    //                 // it->validBit = 1;
+                    //                 // it->data = value;
+                    //                 // it->tag = key;
+                    //                 // it->recencyInfo = blockSize - 1;
+                    //                 // cout<<"\n\n\n";
+                    //                 cache.splice(cache.end(), cache, it);
+                    //                 // WriteCache_FA(blockSize, blockOffset, bytesToRW, it, value, index, key, fullAddress);
+                    //                 //on accessing put the cache block at the end; 
+                    //             }
+                    //             break;
+                    //             case FIFO:
+                    //             {
+                    //                 //FIFO
+                    //                 int min = (cache.begin())->FIFOindex;
+                    //                 auto minIter = cache.begin(); 
+                    //                 //find the first index
+                    //                 // for(auto it:cache)
+                    //                 for(auto it = cache.begin(); it != cache.end(); it++)
+                    //                 {
+                    //                     if(it->FIFOindex < min)
+                    //                     {
+                    //                         min = it->FIFOindex;
+                    //                         minIter = it;
+                    //                     }
+                    //                 }
+                    //                 minIter->FIFOindex += 1 ;
+                    //                 WriteCache_FA(blockSize, blockOffset, bytesToRW, minIter, value, index, key, fullAddress);
+                    //                 // minIter->validBit = 1;
+                    //                 // minIter->tag = key;
+
+
+                    //             }
+                                // break;
+                            //     case LFU:
+                            //     {
+                            //         //find with least frequency
+                            //         int min = (cache.begin())->frequency;
+                            //         auto minIter = cache.begin(); 
+                            //         //find the first index
+                            //         // for(auto it:cache)
+                            //         for(auto it = cache.begin(); it != cache.end(); it++)
+                            //         {
+                            //             if(it->frequency < min)
+                            //             {
+                            //                 min = it->frequency;
+                            //                 minIter = it;
+                            //             }
+                            //         }
+                            //         // minIter->validBit = 1;
+                            //         // WriteCache(blockSize, blockOffset, bytesToRW, minIter, value, index, key);
+                            //         // minIter->tag = key;
+                            //         // minIter->recencyInfo = blockSize - 1;
+                            //         //LFU
+                            //         //increment frequency by 1
+                            //         minIter->frequency += 1;
+                            //         WriteCache_FA(blockSize, blockOffset, bytesToRW, minIter, value, index, key, fullAddress);
+
+                            //     }
+                            // }
+                        
+                        
+                
+
+                    }
+                }
+        }
+        char* SetAssosciative(int key, char *value, int index, int blockOffset, int RW, int bytesToRW, int fullAddress)
+        {
+            //multiplying so that we can go directly to the initial block of that set
+            index = index*waysOfSetAssosc;
+            auto startOfSet = cache.begin();
+            advance(startOfSet, index);
+            auto endOfSet = next(startOfSet, setAssosciativity - 1);
+            // for(auto it = cache.begin(); it != cache.end(); )
+
+            switch(RW)
+            {
+                case 0:
+                {
+                    bool dataPresent = false;
+                    // for(int i =0; i <setAssosciativity; i++)
+                    for(auto it = startOfSet; it != endOfSet; it++)
+                    {
+                        if(it->tag == key)
+                        {
+                            hits++;
+                            dataPresent = true;
+                            char *substr;
+                            switch(policy)
+                            {
+                                case 0:
+                                {
+                                    //LRU
+                                    char *substr;
+                                    if((blockSize - blockOffset) >= bytesToRW)
+                                    {
+                                        substr = new char[bytesToRW+1];
+                                        strncpy(substr, &it->data[blockOffset], bytesToRW);
+                                        cout<<"Here is "<<it->data[3];
+                                        return substr;
+                                    }
+                                    else if((blockSize - blockOffset) < bytesToRW)
+                                    {
+                                        //data not in block
+                                        char* finalStr = new char[bytesToRW];
+                                        strncpy(finalStr, &it->data[blockOffset],(blockSize-blockOffset));
+
+                                        if(index + 1 >= (cacheSize/blockSize))
+                                        {
+                                            char *ptr = SetAssosciative(key + 1, &nullData, 0, 0, 0,bytesToRW - (blockSize-blockOffset), fullAddress);
+                                            strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
+                                        }
+                                        else if(index + 1 < (cacheSize/blockSize))
+                                        {
+                                            char *ptr = SetAssosciative(key, &nullData, index + 1, 0, 0,bytesToRW - (blockSize-blockOffset), fullAddress);
                                             strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
                                         }
                                     }
@@ -2649,169 +2871,23 @@ class Cache
                                     return substr;
                                 }
                             }
-                        }
-                        else{
-                            //miss
-                            //GO TO MAIN MEMORY
-                            if(policy == LFU)
-                            {   
-                                LFU_Evict(fullAddress, key, cache.begin(), cache.end());
-                                misstable[fullAddress] = false;
-                            }
-                            else 
-                            {
-                                
-                                it->data = MainMemory::read(fullAddress, key).data;
-                            }
-                            // cache.begin = m1.read();
-                            return &nullData;
-                        }
-                    }
-                    return &nullData;
-                }
-                break;
-                case 1:
-                {
-                            // for(list<struct BranchParameters>::iterator it :cache)
-                    // for(auto it = cache.begin(); it != cache.end(); ++it)
-                    auto it = cache.begin();
-                    {
-                        //check for an empty block
-                        // if(it->validBit == 0)
-                        {
-                            it->validBit = 1;
-                            it->tag = key;
-                            it->recencyInfo = blockSize - 1;
-                            // it->FIFOindex = (FIFOindex++);
-                            //on accessing put the cache block at the end; 
-                            // cout<<"WHerheh h";
-                            // cache.splice(cache.end(), cache, it);
-                            // WriteCache(blockSize, blockOffset, bytesToRW, it, value, index, key);
-                            validBitPresent = true;
-                            // break;
-                        }
-                    }
-                    //case where it is full
-                    // if(0)
-                    {
-                        switch(policy)
-                            {
-                                case LRU:
-                                {
-                                    //LRU
-                                    //we evict the first from the cache list which is the LRU
-                                    auto it = cache.begin();
-                                    // it->validBit = 1;
-                                    // it->data = value;
-                                    // it->tag = key;
-                                    // it->recencyInfo = blockSize - 1;
-                                    // cout<<"\n\n\n";
-                                    cache.splice(cache.end(), cache, it);
-                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, it, value, index, key, fullAddress);
-                                    //on accessing put the cache block at the end; 
-                                }
-                                break;
-                                case FIFO:
-                                {
-                                    //FIFO
-                                    int min = (cache.begin())->FIFOindex;
-                                    auto minIter = cache.begin(); 
-                                    //find the first index
-                                    // for(auto it:cache)
-                                    for(auto it = cache.begin(); it != cache.end(); it++)
-                                    {
-                                        if(it->FIFOindex < min)
-                                        {
-                                            min = it->FIFOindex;
-                                            minIter = it;
-                                        }
-                                    }
-                                    minIter->FIFOindex += 1 ;
-                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, minIter, value, index, key, fullAddress);
-                                    // minIter->validBit = 1;
-                                    // minIter->tag = key;
-
-
-                                }
-                                break;
-                                case LFU:
-                                {
-                                    //find with least frequency
-                                    int min = (cache.begin())->frequency;
-                                    auto minIter = cache.begin(); 
-                                    //find the first index
-                                    // for(auto it:cache)
-                                    for(auto it = cache.begin(); it != cache.end(); it++)
-                                    {
-                                        if(it->frequency < min)
-                                        {
-                                            min = it->frequency;
-                                            minIter = it;
-                                        }
-                                    }
-                                    // minIter->validBit = 1;
-                                    // WriteCache(blockSize, blockOffset, bytesToRW, minIter, value, index, key);
-                                    // minIter->tag = key;
-                                    // minIter->recencyInfo = blockSize - 1;
-                                    //LFU
-                                    //increment frequency by 1
-                                    minIter->frequency += 1;
-                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, minIter, value, index, key, fullAddress);
-
-                                }
-                            }
-                        
-                        
-                
-
-                    }
-                }
-            }
-        }
-        char* SetAssosciative(int key, char *value, int index, int blockOffset, int RW, int bytesToRW, int fullAddress)
-        {
-            //multiplying so that we can go directly to the initial block of that set
-            index = index*waysOfSetAssosc;
-            auto it = cache.begin();
-            advance(it, index);
-            auto endOfSet = next(it, setAssosciativity - 1);
-            // for(auto it = cache.begin(); it != cache.end(); )
-
-            switch(RW)
-            {
-                case 0:
-                {
-                    bool dataPresent = false;
-                    for(int i =0; i <setAssosciativity; i++)
-                    {
-                        if(it->tag == key)
-                        {
-                            hits++;
-                            dataPresent = true;
-                            char *substr;
-                            if((blockSize - blockOffset) >= bytesToRW)
-                            {
-                                //for data present in single block
-                                substr = new char[bytesToRW];
-                                strncpy(substr, &it->data[blockOffset], bytesToRW);
-                            }
                             return substr;
                         }
                     }
-                    if(dataPresent == false)
                     {
+                        MainMemory::write(fullAddress, value, bytesToRW);
                         //go to main memory
                         switch (policy)
                         {
-                        case LFU:
-                            LFU_Evict(fullAddress, key, it, endOfSet);
-                            misstable[fullAddress] = false;
-                            break;
-                        case LRU:
-                            LRU_Evict(fullAddress,key, it, endOfSet);
-                            misstable[fullAddress] = false;
-                        default:
-                            break;
+                            case LFU:
+                                LFU_Evict(fullAddress, key, startOfSet, endOfSet);
+                                misstable[fullAddress] = false;
+                                break;
+                            case LRU:
+                                LRU_Evict(fullAddress,key, startOfSet, endOfSet);
+                                misstable[fullAddress] = false;
+                            default:
+                                break;
                         }
                          // LFU(fullAddress, key);
                         // it->data = MainMemory::read(fullAddress, key);
@@ -2821,106 +2897,105 @@ class Cache
                 break;
                 case 1:
                 {
-                    {
-                        //checks if a set is empty
-                        int setIsEmpty = -1;
-                        auto temp = it;
-                        //first place of the set
-                        auto first = it;
-                        //find an empty block there
-                        auto endOfSet = next(first, setAssosciativity - 1);
-                        // for(int i = 0; i < setAssosciativity; i++)
-                        // {
-                        //     // if(temp->validBit == 0)
-                        //     {
-                        //         //value written in the empty block
-                        //         setIsEmpty = i;
-                        //         it->data = value;
-                        //         it->tag = key;
-                        //         it->validBit = 1;
-                        //         it->recencyInfo = 0;
-                        //         //move temp to the front of the set for LRU
-                        //         cache.splice(endOfSet, cache, temp);
+                        for(auto it = startOfSet; it != endOfSet; it++)
+                        {
+                            if(it->tag == key)
+                            {
+                                WriteCache_FA(blockSize, blockOffset, bytesToRW, it, value, index, key, fullAddress);
+                                return &nullData;
+                            }
 
+                                //value written in the empty block
+                                // setIsEmpty = i;
+                                // it->tag = key;
+                                // it->validBit = 1;
+                                // it->recencyInfo = 0;
+                                //move temp to the front of the set for LRU
+
+                                // switch(policy)
+                                // {
+                                //     case 0:
+                                //     {
+                                //         //lru
+                                //         startOfSet->validBit = 1;
+                                //         // it->data = value;
+                                //         startOfSet->tag = key;
+                                //         startOfSet->recencyInfo = blockSize - 1;
+                                //         //on accessing put the cache block at the end; 
+                                //         // WriteCache_FA(blockSize, blockOffset);
+                                //         WriteCache_FA(blockSize, blockOffset, bytesToRW, it, value, index, key, fullAddress);
+                                //         cache.splice(endOfSet, cache, it);
+                                //     }
+                        //             break;
+                        //             case 1:
+                        //             {
+                        //                 //fifo
+                        //                 int min = (startOfSet)->FIFOindex;
+                        //                 auto minIter = startOfSet; 
+                        //                 //find the first index
+                        //                 // for(auto it:cache)
+                        //                 // for(auto iter = startOfSet; iter != endOfSet; iter++)
+                        //                 {
+                        //                     // if(iter->validBit == 0)
+                        //                     {
+                        //                         WriteCache_FA(blockSize, blockOffset, bytesToRW, iter, value, index, key, fullAddress);
+                        //                         minIter->validBit = 1;
+                        //                         minIter->tag = key;
+                        //                         minIter->recencyInfo = blockSize - 1;
+                        //                         return &nullData;
+                        //                     }
+                        //                 }
+                        //                 //replace the first block in set assosc
+                        //                 WriteCache_FA(blockSize, blockOffset, bytesToRW, startOfSet, value, index, key, fullAddress);
+
+                        //                 // cache.splice(endOfSet, cache, it);
+                        //             }
+                        //             break;
+                        //             case 2:
+                        //             {
+                        //                 //lfu
+                        //                 int min = (startOfSet)->frequency;
+                        //                 auto minIter = startOfSet; 
+                        //                 //find the first index
+                        //                 // for(auto it:cache)
+                        //                 for(auto iter = startOfSet; iter != endOfSet; iter++)
+                        //                 {
+                        //                     if(iter->frequency < min)
+                        //                     {
+                        //                         min = iter->frequency;
+                        //                         minIter = iter;
+                        //                     }
+                        //                 }
+                        //                 WriteCache_FA(blockSize, blockOffset, bytesToRW, minIter, value, index, key, fullAddress);
+                        //                 minIter->validBit = 1;
+                        //                 minIter->frequency += 1;
+                        //                 minIter->tag = key;
+                        //                 minIter->recencyInfo = blockSize - 1;
+                        //             }
+                        //             break;
+                        //         }
                         //         return &nullData;
                         //     }
                         //     temp = next(temp);
                         // }
+
+                        // //checks if a set is empty
+                        // int setIsEmpty = -1;
+                        // auto temp = startOfSet;
+                        // //first place of the set
+                        // auto first = startOfSet;
+                        // //find an empty block there
+                        // auto endOfSet = next(first, setAssosciativity - 1);
                         //if setIsEmpty != -1 means we have an empty block
                 
                         //no empty block found now we evict the first block in the set
                         // if(setIsEmpty == -1)
-                        {
-                            switch(policy)
-                            {
-                                case 0:
-                                {
-                                    //lru
-                                    it->validBit = 1;
-                                    // it->data = value;
-                                    it->tag = key;
-                                    it->recencyInfo = blockSize - 1;
-                                    
-                                
-                                    //on accessing put the cache block at the end; 
-                                    // WriteCache_FA(blockSize, blockOffset);
-                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, it, value, index, key, fullAddress);
-                                    cache.splice(endOfSet, cache, it);
-                                }
-                                break;
-                                case 1:
-                                {
-                                    //fifo
-                                    int min = (it)->FIFOindex;
-                                    auto minIter = it; 
-                                    //find the first index
-                                    // for(auto it:cache)
-                                    for(auto iter = it; iter != endOfSet; iter++)
-                                    {
-                                        if(iter->validBit == 0)
-                                        {
-                                            WriteCache_FA(blockSize, blockOffset, bytesToRW, iter, value, index, key, fullAddress);
-                                            minIter->validBit = 1;
-                                            minIter->tag = key;
-                                            minIter->recencyInfo = blockSize - 1;
-                                            return &nullData;
-                                        }
-                                    }
-                                    //replace the first block in set assosc
-                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, it, value, index, key, fullAddress);
-
-                                    // cache.splice(endOfSet, cache, it);
-                                }
-                                break;
-                                case 2:
-                                {
-                                    //lfu
-                                    int min = (it)->frequency;
-                                    auto minIter = it; 
-                                    //find the first index
-                                    // for(auto it:cache)
-                                    for(auto iter = it; iter != endOfSet; iter++)
-                                    {
-                                        if(iter->frequency < min)
-                                        {
-                                            min = iter->frequency;
-                                            minIter = iter;
-                                        }
-                                    }
-                                    WriteCache_FA(blockSize, blockOffset, bytesToRW, minIter, value, index, key, fullAddress);
-                                    minIter->validBit = 1;
-                                    minIter->frequency += 1;
-                                    minIter->tag = key;
-                                    minIter->recencyInfo = blockSize - 1;
-                                }
-                                break;
-                            }
-                            
                         }
-                    }
+                        MainMemory::write(fullAddress, value, bytesToRW);
+
                 }
-                break;
             }
+
         }
 
     public:
