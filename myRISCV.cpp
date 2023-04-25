@@ -2353,38 +2353,64 @@ class Cache
         Full Assoc (1)
         Set Assoc (2),*/
         int mapping;
-        void WriteCache_FA(int blockSize, int blockOffset, int bytesToRW, list<struct BlockParameters>::iterator &it, char *value, int index, int key)
+        void WriteCache_FA(int blockSize, int blockOffset, int bytesToRW, list<struct BlockParameters>::iterator &it, char *value, int index, int key,int address)
         {
-            if((blockSize - blockOffset) >= bytesToRW)
+            // if((blockSize - blockOffset) >= bytesToRW)
+            // {
+            //     // cout<<"Block size "<<blockOffset;
+            //     // cout<<"Where";
+            //     char* substr = new char[bytesToRW];
+            //     memcpy(&it->data[blockOffset], value, bytesToRW);
+            // }
+            // else if((blockSize - blockOffset) < bytesToRW)
+            // {
+            //     // char* substr1 = new char[blockSize-blockOffset];
+            //     // char* substr2 = new char[bytesToRW - (blockSize-blockOffset)];
+            //     char* finalStr = new char[bytesToRW];
+            //     cout<<"block siz is "<<blockSize - blockOffset<<endl;
+            //     // cout<<value[0]<<value[1]<<value[2];
+            //     memcpy(&(it->data[blockOffset]), value, blockSize - blockOffset);
+            //     if(index + 1 >= (cacheSize/blockSize))
+            //     {
+            //         //write in next block
+            //         char *ptr = FullyAssosciative(key, value + (blockSize-blockOffset), 0, 0, 1,bytesToRW - (blockSize-blockOffset));
+            //         // memcpy(&it->data[blockOffset], value + ((blockSize - blockOffset)), bytesToRW - (blockSize - blockOffset));
+            //         // strncpy(finalStr, ptr,bytesToRW - (blockSize-blockOffset));
+            //     }
+            //     else if(index + 1 < (cacheSize/blockSize))
+            //     {
+            //         char *ptr = FullyAssosciative(key, value + (blockSize-blockOffset), 0, index + 1, 1,bytesToRW - (blockSize-blockOffset));
+            //         // strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
+            //         // memcpy(&it->data[blockOffset], value + ((blockSize - blockOffset)),bytesToRW - (blockSize - blockOffset));
+            //     }
+            //     // cout<<"here is"<<*finalStr;
+            // }
+            bool isHit=false;
+            for(int i = 0; i < setAssosciativity; i++)
             {
-                // cout<<"Block size "<<blockOffset;
-                // cout<<"Where";
-                char* substr = new char[bytesToRW];
-                memcpy(&it->data[blockOffset], value, bytesToRW);
+                if(key==it->tag)
+                {
+                    isHit=true;
+                    break;
+                }
             }
-            else if((blockSize - blockOffset) < bytesToRW)
+
+            if (isHit)
             {
-                // char* substr1 = new char[blockSize-blockOffset];
-                // char* substr2 = new char[bytesToRW - (blockSize-blockOffset)];
-                char* finalStr = new char[bytesToRW];
-                cout<<"block siz is "<<blockSize - blockOffset<<endl;
-                // cout<<value[0]<<value[1]<<value[2];
-                memcpy(&(it->data[blockOffset]), value, blockSize - blockOffset);
-                if(index + 1 >= (cacheSize/blockSize))
+                if((blockSize - blockOffset) >= bytesToRW)//we can write in this block only
                 {
-                    //write in next block
-                    char *ptr = FullyAssosciative(key, value + (blockSize-blockOffset), 0, 0, 1,bytesToRW - (blockSize-blockOffset));
-                    // memcpy(&it->data[blockOffset], value + ((blockSize - blockOffset)), bytesToRW - (blockSize - blockOffset));
-                    // strncpy(finalStr, ptr,bytesToRW - (blockSize-blockOffset));
+                    
                 }
-                else if(index + 1 < (cacheSize/blockSize))
+                else
                 {
-                    char *ptr = FullyAssosciative(key, value + (blockSize-blockOffset), 0, index + 1, 1,bytesToRW - (blockSize-blockOffset));
-                    // strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
-                    // memcpy(&it->data[blockOffset], value + ((blockSize - blockOffset)),bytesToRW - (blockSize - blockOffset));
+                    
                 }
-                // cout<<"here is"<<*finalStr;
             }
+            else//wrtite in memory
+            {
+                MainMemory.Write(address, value);
+            }
+            
 
         }
         char* DirectMap(int key, char *value, int index, int blockOffset, int RW, int bytesToRW)
