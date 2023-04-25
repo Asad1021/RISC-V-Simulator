@@ -2307,7 +2307,7 @@ int FIFOindex = 0;;
 int policy = 0; 
 //0 = direct mapping
 //1 = fully assosc
-int mapping = 0;
+int mapping = 1;
 int waysOfSetAssosc = 2;
 
 struct BlockParameters
@@ -2335,7 +2335,39 @@ class Cache
         Full Assoc (1)
         Set Assoc (2),*/
         int mapping;
-
+        void WriteCache(int blockSize, int blockOffset, int bytesToRW, list<struct BlockParameters>::iterator &it, char *value, int index, int key)
+        {
+            if((blockSize - blockOffset) >= bytesToRW)
+            {
+                // cout<<"Block size "<<blockOffset;
+                // cout<<"Where";
+                char* substr = new char[bytesToRW];
+                memcpy(&it->data[blockOffset], value, bytesToRW);
+            }
+            else if((blockSize - blockOffset) < bytesToRW)
+            {
+                // char* substr1 = new char[blockSize-blockOffset];
+                // char* substr2 = new char[bytesToRW - (blockSize-blockOffset)];
+                char* finalStr = new char[bytesToRW];
+                cout<<"block siz is "<<blockSize - blockOffset<<endl;
+                // cout<<value[0]<<value[1]<<value[2];
+                memcpy(&(it->data[blockOffset]), value, blockSize - blockOffset);
+                if(index + 1 >= (cacheSize/blockSize))
+                {
+                    //write in next block
+                    char *ptr = FullyAssosciative(key + 1, value + (blockSize-blockOffset), 0, 0, 1,bytesToRW - (blockSize-blockOffset));
+                    // memcpy(&it->data[blockOffset], value + ((blockSize - blockOffset)), bytesToRW - (blockSize - blockOffset));
+                    // strncpy(finalStr, ptr,bytesToRW - (blockSize-blockOffset));
+                }
+                else if(index + 1 < (cacheSize/blockSize))
+                {
+                    char *ptr = FullyAssosciative(key, value + (blockSize-blockOffset), 0, index + 1, 1,bytesToRW - (blockSize-blockOffset));
+                    // strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
+                    // memcpy(&it->data[blockOffset], value + ((blockSize - blockOffset)),bytesToRW - (blockSize - blockOffset));
+                }
+                // cout<<"here is"<<*finalStr;
+            }
+        }
         char* DirectMap(int key, char *value, int index, int blockOffset, int RW, int bytesToRW)
         {
             // cout<<"bloo"<<blockOffset;
@@ -2429,7 +2461,7 @@ class Cache
             }
 
         }
-        char* FullyAssosciative(int key, char *value, int blockOffset, int RW, int bytesToRW)
+        char* FullyAssosciative(int key, char *value, int blockOffset, int index, int RW, int bytesToRW)
         {
             bool validBitPresent = false;
             switch(RW)
@@ -2453,9 +2485,24 @@ class Cache
                                     {
                                         substr = new char[bytesToRW+1];
                                         strncpy(substr, &it->data[blockOffset], bytesToRW);
+                                        return substr;
                                     }
-                                    else{
+                                    else if((blockSize - blockOffset) < bytesToRW)
+                                    {
                                         //data not in block
+                                        char* finalStr = new char[bytesToRW];
+                                        strncpy(finalStr, &it->data[blockOffset],(blockSize-blockOffset));
+
+                                        if(index + 1 >= (cacheSize/blockSize))
+                                        {
+                                            char *ptr = DirectMap(key + 1, &nullData, 0, 0, 0,bytesToRW - (blockSize-blockOffset));
+                                            strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
+                                        }
+                                        else if(index + 1 < (cacheSize/blockSize))
+                                        {
+                                            char *ptr = DirectMap(key, &nullData, index + 1, 0, 0,bytesToRW - (blockSize-blockOffset));
+                                            strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
+                                        }
                                     }
                                     cache.splice(cache.end(), cache, it);
                                     return substr;
@@ -2471,13 +2518,30 @@ class Cache
                                 {
                                     //LFU
                                     //increment frequency by 1
-                                    char* substr;
+                                    char *substr;
                                     if((blockSize - blockOffset) >= bytesToRW)
                                     {
-                                        substr = new char[bytesToRW];
+                                        substr = new char[bytesToRW+1];
                                         strncpy(substr, &it->data[blockOffset], bytesToRW);
-                                    }else{
-                                        //for data not in block
+                                        return substr;
+                                    }
+                                    else if((blockSize - blockOffset) < bytesToRW)
+                                    {
+                                        //data not in block
+                                        char* finalStr = new char[bytesToRW];
+                                        strncpy(finalStr, &it->data[blockOffset],(blockSize-blockOffset));
+
+                                        if(index + 1 >= (cacheSize/blockSize))
+                                        {
+                                            char *ptr = FullyAssosciative(key + 1, &nullData, 0, 0, 0,bytesToRW - (blockSize-blockOffset));
+                                            strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
+                                        }
+                                        else if(index + 1 < (cacheSize/blockSize))
+                                        {
+                                            char *ptr = FullyAssosciative(key, &nullData, index + 1, 0, 0,bytesToRW - (blockSize-blockOffset));
+                                            strncpy(&finalStr[bytesToRW - (blockSize-blockOffset)], ptr,bytesToRW - (blockSize-blockOffset));
+                                        }
+                                        return finalStr;
                                     }
                                     it->frequency += 1;
                                     return substr;
@@ -2501,7 +2565,7 @@ class Cache
                         if(it->validBit == 0)
                         {
                             it->validBit = 1;
-                            it->data = value;
+                            WriteCache(blockSize, blockOffset, bytesToRW, it, value, index, key);
                             it->tag = key;
                             it->recencyInfo = blockSize - 1;
                             it->FIFOindex = (FIFOindex++);
@@ -2526,6 +2590,7 @@ class Cache
                                     it->data = value;
                                     it->tag = key;
                                     it->recencyInfo = blockSize - 1;
+                                    WriteCache(blockSize, blockOffset, bytesToRW, it, value, index, key);
                                     //on accessing put the cache block at the end; 
                                     cache.splice(cache.end(), cache, it);
                                 }
@@ -2545,8 +2610,8 @@ class Cache
                                             minIter = it;
                                         }
                                     }
+                                    WriteCache(blockSize, blockOffset, bytesToRW, minIter, value, index, key);
                                     minIter->validBit = 1;
-                                    minIter->data = value;
                                     minIter->tag = key;
                                     minIter->recencyInfo = blockSize - 1;
 
@@ -2569,7 +2634,7 @@ class Cache
                                         }
                                     }
                                     minIter->validBit = 1;
-                                    minIter->data = value;
+                                    WriteCache(blockSize, blockOffset, bytesToRW, minIter, value, index, key);
                                     minIter->tag = key;
                                     minIter->recencyInfo = blockSize - 1;
                                     //LFU
@@ -2764,7 +2829,7 @@ class Cache
                 break;
                 case 1:
                 {
-                    FullyAssosciative(key, &na, blockOffset, 0, bytesToRW);
+                    FullyAssosciative(key, &na, blockOffset, index,0, bytesToRW);
                 }
                 break;
                 case 2:
@@ -2791,7 +2856,7 @@ class Cache
                 break;
                 case 1:
                 {
-                    FullyAssosciative(key, value, blockOffset, 1, bytesToRW);
+                    FullyAssosciative(key, value, blockOffset, index, 1, bytesToRW);
                 }
                 break;
                 case 2:
@@ -2836,11 +2901,11 @@ char* Placeholder_Name(char *data, int intAddress, int readWrite, int bytesToRW)
     int blockOffset = (mask&intAddress);
     // cout<<"BO"<<blockOffset;
 
-    // cout<<"Tag address "<<tagAddress<<endl;
-    // cout<<"Block offset bits "<<blockOffsetBits<<endl;
-    // printf("number of blocks: %d \n", numberOfBlocks);
-    // printf("block off-set bits: %d \n", blockOffset);
-    // printf("index: %d \n", index);
+    cout<<"Tag address "<<tagAddress<<endl;
+    cout<<"Block offset bits "<<blockOffsetBits<<endl;
+    printf("number of blocks: %d \n", numberOfBlocks);
+    printf("block off-set bits: %d \n", blockOffset);
+    printf("index: %d \n", index);
     
     switch (mapping)
     {
@@ -2917,9 +2982,13 @@ int main()
     // char *data = &chr;
     char *data2 = &(chr2[0]);
     //intialise cache capacity, policy
-    Placeholder_Name(data2, 21, 1, 3);
-    // Placeholder_Name(data2, 56, 0, 1);/*OUTPUT 2*/
-    // Placeholder_Name(data2, 28, 0, 1, 0);
+    Placeholder_Name(data2, 56, 1, 3);/*OUTPUT 2*/
+    Placeholder_Name(data2, 29, 1, 3);
+    Placeholder_Name(data2, 19, 1, 5);
+    Placeholder_Name(data2, 18, 1, 5);
+    // Placeholder_Name(data2, 18, 1, 5);
+    // Placeholder_Name(data2, 10, 1, 5);
+
     // Placeholder_Name(data2, 28, 0, 0, 0);
     // Placeholder_Name(data, 16, 0, 0);
     cache.show_cache();
