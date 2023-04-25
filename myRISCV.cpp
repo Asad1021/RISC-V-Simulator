@@ -2264,13 +2264,13 @@ void init_NoOps()
 
 #pragma region MainMemory
 
-class MainMemory
+static class MainMemory
 {
     private:
 
-    static void Write(int address, char *value)
+    void Write(int address, char *value,int bytesToWrite)
     {
-        for (int i = 0; i < blockSize; i++)
+        for (int i = 0; i < bytesToWrite; i++)
         {
             memory_arr[address + i] = value[i];
         }
@@ -2287,11 +2287,11 @@ class MainMemory
     }
 
     public:
-    static void write(int address, char *values)
+    void write(int address, char *values,int bytesToWrite)
     {
-        int EffectiveAddress;//will store the address from where the block starts
-        EffectiveAddress = address - address % blockSize;//removing last log2(Blocksize) bits
-        Write(EffectiveAddress, values);
+        // int EffectiveAddress;//will store the address from where the block starts
+        // EffectiveAddress = address - address % blockSize;//removing last log2(Blocksize) bits
+        Write(address, values, bytesToWrite);
         return;
     }
 
@@ -2354,6 +2354,8 @@ class Cache
         Set Assoc (2),*/
         int mapping;
         unordered_map<int , bool> misstable;
+
+
         void WriteCache_FA(int blockSize, int blockOffset, int bytesToRW, list<struct BlockParameters>::iterator &it, char *value, int index, int key,int address)
         {
             // if((blockSize - blockOffset) >= bytesToRW)
@@ -2368,7 +2370,7 @@ class Cache
             //     // char* substr1 = new char[blockSize-blockOffset];
             //     // char* substr2 = new char[bytesToRW - (blockSize-blockOffset)];
             //     char* finalStr = new char[bytesToRW];
-            //     cout<<"block siz is "<<blockSize - blockOffset<<endl;
+            //     cout<<"block size is "<<blockSize - blockOffset<<endl;
             //     // cout<<value[0]<<value[1]<<value[2];
             //     memcpy(&(it->data[blockOffset]), value, blockSize - blockOffset);
             //     if(index + 1 >= (cacheSize/blockSize))
@@ -2386,31 +2388,47 @@ class Cache
             //     }
             //     // cout<<"here is"<<*finalStr;
             // }
-            bool isHit=false;
-            for(int i = 0; i < setAssosciativity; i++)
-            {
-                if(key==it->tag)
-                {
-                    isHit=true;
-                    break;
-                }
-            }
 
-            if (isHit)
-            {
-                if((blockSize - blockOffset) >= bytesToRW)//we can write in this block only
+
+            // bool isHit=false;
+            // for(int i = 0; i < setAssosciativity; i++)
+            // {
+            //     if(key==it->tag)
+            //     {
+            //         isHit=true;
+            //         break;
+            //     }
+            // }
+
+            // if (isHit)
+            // {
+                if((blockSize - blockOffset) >= bytesToRW)
                 {
-                    
+                    // cout<<"Block size "<<blockOffset;
+                    // cout<<"Where";
+                    char* substr = new char[bytesToRW];
+                    memcpy(&it->data[blockOffset], value, bytesToRW);
+                    MainMemory::write(address,value,bytesToRW);
                 }
-                else
+                else if((blockSize - blockOffset) < bytesToRW)
                 {
-                    
+                    // char* substr1 = new char[blockSize-blockOffset];
+                    // char* substr2 = new char[bytesToRW - (blockSize-blockOffset)];
+                    char* finalStr = new char[bytesToRW];
+                    cout<<"block size is "<<blockSize - blockOffset<<endl;
+                    // cout<<value[0]<<value[1]<<value[2];
+                    memcpy(&(it->data[blockOffset]), value, blockSize - blockOffset);
+                    //write remaining bits to the memory
+
+                    // address+=blockSize-blockOffset;
+                    MainMemory::write(address,value,bytesToRW);//putting remaining bytes in memory
                 }
-            }
-            else//wrtite in memory
-            { 
-                MainMemory::write(address, value);
-            }
+                
+            // }
+            // else//wrtite in memory
+            // {
+            //     MainMemory.write(address, value, bytesToRW);
+            // }
             
 
         }
@@ -2638,6 +2656,7 @@ class Cache
                             if(policy == LFU)
                             {   
                                 LFU_Evict(fullAddress, key, cache.begin(), cache.end());
+                                misstable[fullAddress] = false;
                             }
                             else 
                             {
@@ -2677,7 +2696,7 @@ class Cache
                     {
                         switch(policy)
                             {
-                                case 0:
+                                case LRU:
                                 {
                                     //LRU
                                     //we evict the first from the cache list which is the LRU
@@ -2692,7 +2711,7 @@ class Cache
                                     //on accessing put the cache block at the end; 
                                 }
                                 break;
-                                case 1:
+                                case FIFO:
                                 {
                                     //FIFO
                                     int min = (cache.begin())->FIFOindex;
@@ -2715,7 +2734,7 @@ class Cache
 
                                 }
                                 break;
-                                case 2:
+                                case LFU:
                                 {
                                     //find with least frequency
                                     int min = (cache.begin())->frequency;
@@ -2786,9 +2805,11 @@ class Cache
                         {
                         case LFU:
                             LFU_Evict(fullAddress, key, it, endOfSet);
+                            misstable[fullAddress] = false;
                             break;
                         case LRU:
                             LRU_Evict(fullAddress,key, it, endOfSet);
+                            misstable[fullAddress] = false;
                         default:
                             break;
                         }
