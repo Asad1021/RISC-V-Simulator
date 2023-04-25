@@ -290,168 +290,6 @@ typedef struct ma_wb_pipeline
 ma_wb_pipe ma_wb_mainPipeline, ma_wb_No_Op;
 #pragma endregion MEM_ACC_RELATED_DATA
 
-class Fetch
-{
-    bitset<32> fetch_instruction(int flag)
-    {
-        // the part b4 space PC address
-        string hex_str;
-
-        if (flag == 0)
-        {
-            string pc_str = read();
-            currentPCAdd = HexStringToBitset(pc_str);
-            hex_str = read();
-            // addToBitset();//currentPCAdd+=4//it has to be next address
-            incrementNextPCAdd();
-        }
-        else if (flag == 1)
-        {
-            // ifstream tempRead("input.mc");
-            // string tempHexa;
-            // tempRead >> tempHexa;
-            // bitset<32> tempBitset(HexStringToBitset(tempHexa));
-
-            // while (tempBitset != currentPCAdd)
-            // {
-            //     tempRead >> tempHexa;
-            //     tempRead >> tempHexa;
-            //     tempBitset = HexStringToBitset(tempHexa);
-            // }
-
-            // tempRead >> hex_str;
-        }
-        int offsetPC = currentPCAdd.to_ulong();
-        int *num = (int *)(InstMem + offsetPC);
-        bitset<32> currentInstruction(*num);
-
-        // bitset<32> currentInstruction = HexStringToBitset(hex_str);
-        // cout<<endl<<"READING INSTRUCTION "<<hex_str<<endl;
-        bitset<32> returnPredictedAddress = predicted_address(currentInstruction);
-        bitset<32> minusOne(-1);
-        if (returnPredictedAddress != minusOne)
-        {
-            currentPCAdd = returnPredictedAddress;
-            return currentInstruction;
-        }
-
-        if (currentInstruction == exitInstruction)
-        {
-            cout << endl
-                 << "EXITING...\n";
-
-            ofstream memFile; // storing the memmory array in a txt file.
-            memFile.open("Memory_Dump.txt");
-            memFile<<"            DATA SEGMENT"<<endl<<"--------------------------------------"<<endl;
-            memFile<<"Address         "<<"+0    +1    +2    +3"<<endl<<endl;
-
-            for (int i = 0; i < MEMORY_SIZE; i++)
-            {
-                unsigned int temp = (unsigned int)(*(memory_arr + i));
-                if (temp > INT32_MAX)
-                {
-                    temp = temp - 0xffffff00;
-                }
-                if(i%4==0)
-                memFile <<"0x"<< setfill('0') << setw(8) << hex<<(i+INSTMEM_SIZE)<<"      ";
-                memFile << setfill('0') << setw(2) << hex << temp << (((i + 1) % 4 == 0) ? "\n" : "    ");
-            }
-            memFile.close();
-
-            ofstream InstFile; // storing the memmory array in a txt file.
-            InstFile.open("Instruction.txt");
-            InstFile<<"            TEXT SEGMENT"<<endl<<"--------------------------------------"<<endl;
-            InstFile<<"Address         "<<"+0    +1    +2    +3"<<endl<<endl;                  
-
-
-            for (int i = 0; i < INSTMEM_SIZE; i++)
-            {
-                unsigned int temp = (unsigned int)(*(InstMem + i));
-                if (temp > INT32_MAX)
-                {
-                    temp = temp - 0xffffff00;
-                }
-                if(i%4==0)
-                InstFile <<"0x"<< setfill('0') << setw(8) << (i)<<"      ";
-                InstFile << setfill('0') << setw(2) << hex << temp << (((i + 1) % 4 == 0) ? "\n" : "    ");
-                // InstFile << i << ": " << hex << temp << (((i + 1) % 4 == 0) ? "\n" : "  |");
-            }
-            InstFile.close();
-
-            printRF();
-
-            btb_printer(BTB,BUFFER_SIZE);
-            cout << endl
-                 << endl;
-            cout << "Total number of cycles: " << Clock << endl;
-            cout << "Total instructions executed: " << (Clock - No_Stals) << endl;
-            cout << "CPI: " << (((float)Clock) / (float)(Clock - No_Stals)) << endl;
-            cout << "Number of Data-transfer (load and store) instructions executed: " << No_Lw_Sw << endl;
-            cout << "Number of ALU instructions executed: " << No_ALU_inst - 1 << endl;
-            cout << "Number of Control instructions executed: " << No_Ctrl_Inst << endl;
-            cout << "Number of stalls/bubbles in the pipeline: " << No_Stals << endl;
-            cout << "Number of data hazards: " << No_Data_Hazard << endl;
-            cout << "Number of control hazards: " << No_Control_Hazard << endl;
-            cout << "Number of stalls due to data hazards: " << No_stals_due_to_dataHazard << endl;
-            cout << "Number of stalls due to control hazards: " << No_stals_due_to_ctrlHazard << endl;
-            cout << "Number of branch miss prediction: " << No_Branch_miss << endl;
-
-            exit(0);
-        }
-        // stoul converts string of type 0x012312 to its decimal value
-
-        return currentInstruction;
-    }
-    string read()
-    {
-        string line;
-        readFile >> line;
-        return line;
-    }
-    void addToBitset()
-    {
-        currentPCAdd = currentPCAdd.to_ulong() + 4; // add 4 to the bitset
-    }
-    void incrementNextPCAdd()
-    {
-        nextPCAdd = currentPCAdd.to_ulong() + 4; // add 4 to the bitset
-    }
-
-    bitset<32> HexStringToBitset(string hex_instr)
-    {
-        // cout<<"use of stoul for str: "<<hex_instr<<endl;
-        unsigned long hex_to_dec_val = stoul(hex_instr, nullptr, 16);
-        bitset<32> binary_num(hex_to_dec_val);
-        return binary_num;
-    }
-
-public:
-    Fetch(int flag = 0)
-    {
-        if (!HaltIF)
-        {
-            cout << "\n### Fetch ###\n\n";
-            currentInstruction = fetch_instruction(flag);
-            currentPCAdd_Pipe = currentPCAdd;
-            // nextPCAdd_Pipe = nextPCAdd;
-            nextPCAdd_Pipe = currentPCAdd.to_ulong() + 4;
-
-            cout << "FETCH:Fetch instruction " << currentInstruction << " From address " << currentPCAdd << endl;
-            if (ispipeLine)
-            {
-                bitset<32> preAdd = predicted_address(currentPCAdd);
-                if(((int)(preAdd.to_ulong()))==-1)
-                currentPCAdd = currentPCAdd.to_ulong() + 4;
-                else 
-                currentPCAdd = preAdd;
-            }
-            cout << "\n### End Fetch ###\n\n";
-        }
-        else
-            HaltIF = false; // resetting the flag so that next time this will execute asusual
-    }
-};
-// makes .mc file
 void make_file()
 {
     cout << "Enter input filename: ";
@@ -2108,96 +1946,6 @@ void ResolveHazard_Using_dataForwarding()
     }
 }
 
-void RISCv_Processor()
-{
-    // ispipeLine = true;
-
-    RF[2] = MEMORY_SIZE - 0xc;
-
-    if (ispipeLine)
-    {
-        if (!DataForwarding)
-        {
-            while (1)
-            {
-                Write_Back e;
-                Memory_Access d;
-                Execute c;
-                Decode b;
-                Fetch a(1);
-                Clock++;
-
-                cout << "contrh:" << ControlHazard << endl;
-                cout << "dataH:" << DataHazard << endl;
-                cout << "refOP:" << RefreshOprands << endl;
-
-                resolveHazards();
-
-                if (printRegFile)
-                    printRF();
-
-                if (printPipe)
-                {
-                    printPipeline();
-                    cout << endl
-                         << endl
-                         << endl
-                         << "End of cycle:" << Clock << endl
-                         << endl
-                         << endl;
-                }
-            }
-        }
-        else
-        {
-            while (1)
-            {
-                Write_Back e;
-                Memory_Access d;
-                Execute c;
-                Decode b;
-                Fetch a(1);
-                Clock++;
-
-                cout << "contrh:" << ControlHazard << endl;
-                cout << "dataH:" << DataHazard << endl;
-                cout << "refOP:" << RefreshOprands << endl;
-
-                ResolveHazard_Using_dataForwarding();
-
-                if (printRegFile)
-                    printRF();
-
-                if (printPipe)
-                {
-                    printPipeline();
-                    cout << endl
-                         << endl
-                         << endl
-                         << "End of cycle:" << Clock << endl
-                         << endl
-                         << endl;
-                }
-            }
-        }
-    }
-    else
-    {
-        while (1)
-        {
-            Fetch a(1);
-            Decode b;
-            Execute c;
-            Memory_Access d;
-            Write_Back e;
-            currentPCAdd = ex_ma_mainPipeline.nextPCAdd.to_ulong(); // update PC
-            Clock+=5;
-
-            if (printRegFile)
-                printRF();
-        }
-    }
-}
 
 void init_NoOps()
 {
@@ -3019,12 +2767,14 @@ class Cache
 
     public:
         //cache size = cap
-        Cache(int _capacity, 
+        void InitialiseCache(int _capacity, 
         int _blockSize,
         int _policy, 
         int _mapping,
-        int _SAassosc) : cacheSize(_capacity), blockSize(_blockSize), policy(_policy),  mapping(_mapping), setAssosciativity(_SAassosc) 
+        int _SAassosc)
+
         {
+            cacheSize = _capacity ; blockSize = (_blockSize); policy = (_policy);  mapping = (_mapping); setAssosciativity = (_SAassosc);
             for (int i = 0; i < (_capacity)/(_blockSize); i++) 
             {
                 // pair<int, int> block;
@@ -3130,7 +2880,176 @@ class Cache
             capacitymisses = misses - coldmisses - conflictmisses;
         }
 };
-Cache cache(cacheSize, blockSize, policy, mapping, waysOfSetAssosc );
+Cache cache;
+
+class Fetch
+{
+    bitset<32> fetch_instruction(int flag)
+    {
+        // the part b4 space PC address
+        string hex_str;
+
+        if (flag == 0)
+        {
+            string pc_str = read();
+            currentPCAdd = HexStringToBitset(pc_str);
+            hex_str = read();
+            // addToBitset();//currentPCAdd+=4//it has to be next address
+            incrementNextPCAdd();
+        }
+        else if (flag == 1)
+        {
+            // ifstream tempRead("input.mc");
+            // string tempHexa;
+            // tempRead >> tempHexa;
+            // bitset<32> tempBitset(HexStringToBitset(tempHexa));
+
+            // while (tempBitset != currentPCAdd)
+            // {
+            //     tempRead >> tempHexa;
+            //     tempRead >> tempHexa;
+            //     tempBitset = HexStringToBitset(tempHexa);
+            // }
+
+            // tempRead >> hex_str;
+        }
+        int offsetPC = currentPCAdd.to_ulong();
+        int *num = (int *)(InstMem + offsetPC);
+        bitset<32> currentInstruction(*num);
+
+        // bitset<32> currentInstruction = HexStringToBitset(hex_str);
+        // cout<<endl<<"READING INSTRUCTION "<<hex_str<<endl;
+        bitset<32> returnPredictedAddress = predicted_address(currentInstruction);
+        bitset<32> minusOne(-1);
+        if (returnPredictedAddress != minusOne)
+        {
+            currentPCAdd = returnPredictedAddress;
+            return currentInstruction;
+        }
+
+        if (currentInstruction == exitInstruction)
+        {
+            cout << endl
+                 << "EXITING...\n";
+
+            ofstream memFile; // storing the memmory array in a txt file.
+            memFile.open("Memory_Dump.txt");
+            memFile<<"            DATA SEGMENT"<<endl<<"--------------------------------------"<<endl;
+            memFile<<"Address         "<<"+0    +1    +2    +3"<<endl<<endl;
+
+            for (int i = 0; i < MEMORY_SIZE; i++)
+            {
+                unsigned int temp = (unsigned int)(*(memory_arr + i));
+                if (temp > INT32_MAX)
+                {
+                    temp = temp - 0xffffff00;
+                }
+                if(i%4==0)
+                memFile <<"0x"<< setfill('0') << setw(8) << hex<<(i+INSTMEM_SIZE)<<"      ";
+                memFile << setfill('0') << setw(2) << hex << temp << (((i + 1) % 4 == 0) ? "\n" : "    ");
+            }
+            memFile.close();
+
+            ofstream InstFile; // storing the memmory array in a txt file.
+            InstFile.open("Instruction.txt");
+            InstFile<<"            TEXT SEGMENT"<<endl<<"--------------------------------------"<<endl;
+            InstFile<<"Address         "<<"+0    +1    +2    +3"<<endl<<endl;                  
+
+
+            for (int i = 0; i < INSTMEM_SIZE; i++)
+            {
+                unsigned int temp = (unsigned int)(*(InstMem + i));
+                if (temp > INT32_MAX)
+                {
+                    temp = temp - 0xffffff00;
+                }
+            
+                if(i%4==0)
+                InstFile <<"0x"<< setfill('0') << setw(8) << (i)<<"      ";
+                InstFile << setfill('0') << setw(2) << hex << temp << (((i + 1) % 4 == 0) ? "\n" : "    ");
+                // InstFile << i << ": " << hex << temp << (((i + 1) % 4 == 0) ? "\n" : "  |");
+            }
+            InstFile.close();
+
+            printRF();
+
+            btb_printer(BTB,BUFFER_SIZE);
+            cout << endl
+                 << endl;
+            cout << "Total number of cycles: " << Clock << endl;
+            cout << "Total instructions executed: " << (Clock - No_Stals) << endl;
+            cout << "CPI: " << (((float)Clock) / (float)(Clock - No_Stals)) << endl;
+            cout << "Number of Data-transfer (load and store) instructions executed: " << No_Lw_Sw << endl;
+            cout << "Number of ALU instructions executed: " << No_ALU_inst - 1 << endl;
+            cout << "Number of Control instructions executed: " << No_Ctrl_Inst << endl;
+            cout << "Number of stalls/bubbles in the pipeline: " << No_Stals << endl;
+            cout << "Number of data hazards: " << No_Data_Hazard << endl;
+            cout << "Number of control hazards: " << No_Control_Hazard << endl;
+            cout << "Number of stalls due to data hazards: " << No_stals_due_to_dataHazard << endl;
+            cout << "Number of stalls due to control hazards: " << No_stals_due_to_ctrlHazard << endl;
+            cout << "Number of branch miss prediction: " << No_Branch_miss << endl;
+            
+            //COUT CACHE
+            cout<<"\nCACHE IS\n";
+            cache.show_cache();
+            exit(0);
+        }
+        // stoul converts string of type 0x012312 to its decimal value
+
+        return currentInstruction;
+    }
+    string read()
+    {
+        string line;
+        readFile >> line;
+        return line;
+    }
+    void addToBitset()
+    {
+        currentPCAdd = currentPCAdd.to_ulong() + 4; // add 4 to the bitset
+    }
+    void incrementNextPCAdd()
+    {
+        nextPCAdd = currentPCAdd.to_ulong() + 4; // add 4 to the bitset
+    }
+
+    bitset<32> HexStringToBitset(string hex_instr)
+    {
+        // cout<<"use of stoul for str: "<<hex_instr<<endl;
+        unsigned long hex_to_dec_val = stoul(hex_instr, nullptr, 16);
+        bitset<32> binary_num(hex_to_dec_val);
+        return binary_num;
+    }
+
+public:
+    Fetch(int flag = 0)
+    {
+        if (!HaltIF)
+        {
+            cout << "\n### Fetch ###\n\n";
+            currentInstruction = fetch_instruction(flag);
+            currentPCAdd_Pipe = currentPCAdd;
+            // nextPCAdd_Pipe = nextPCAdd;
+            nextPCAdd_Pipe = currentPCAdd.to_ulong() + 4;
+
+            cout << "FETCH:Fetch instruction " << currentInstruction << " From address " << currentPCAdd << endl;
+            if (ispipeLine)
+            {
+                bitset<32> preAdd = predicted_address(currentPCAdd);
+                if(((int)(preAdd.to_ulong()))==-1)
+                currentPCAdd = currentPCAdd.to_ulong() + 4;
+                else 
+                currentPCAdd = preAdd;
+            }
+            cout << "\n### End Fetch ###\n\n";
+        }
+        else
+            HaltIF = false; // resetting the flag so that next time this will execute asusual
+    }
+
+};
+// makes .mc file
+
 char* Placeholder_Name(char *data, int intAddress, int readWrite, int bytesToRW)
 {
     bitset<32> address(intAddress);
@@ -3199,6 +3118,96 @@ char* Placeholder_Name(char *data, int intAddress, int readWrite, int bytesToRW)
 #pragma endregion CACHE
 
 
+void RISCv_Processor()
+{
+    // ispipeLine = true;
+
+    RF[2] = MEMORY_SIZE - 0xc;
+
+    if (ispipeLine)
+    {
+        if (!DataForwarding)
+        {
+            while (1)
+            {
+                Write_Back e;
+                Memory_Access d;
+                Execute c;
+                Decode b;
+                Fetch a(1);
+                Clock++;
+
+                cout << "contrh:" << ControlHazard << endl;
+                cout << "dataH:" << DataHazard << endl;
+                cout << "refOP:" << RefreshOprands << endl;
+
+                resolveHazards();
+
+                if (printRegFile)
+                    printRF();
+
+                if (printPipe)
+                {
+                    printPipeline();
+                    cout << endl
+                         << endl
+                         << endl
+                         << "End of cycle:" << Clock << endl
+                         << endl
+                         << endl;
+                }
+            }
+        }
+        else
+        {
+            while (1)
+            {
+                Write_Back e;
+                Memory_Access d;
+                Execute c;
+                Decode b;
+                Fetch a(1);
+                Clock++;
+
+                cout << "contrh:" << ControlHazard << endl;
+                cout << "dataH:" << DataHazard << endl;
+                cout << "refOP:" << RefreshOprands << endl;
+
+                ResolveHazard_Using_dataForwarding();
+
+                if (printRegFile)
+                    printRF();
+
+                if (printPipe)
+                {
+                    printPipeline();
+                    cout << endl
+                         << endl
+                         << endl
+                         << "End of cycle:" << Clock << endl
+                         << endl
+                         << endl;
+                }
+            }
+        }
+    }
+    else
+    {
+        while (1)
+        {
+            Fetch a(1);
+            Decode b;
+            Execute c;
+            Memory_Access d;
+            Write_Back e;
+            currentPCAdd = ex_ma_mainPipeline.nextPCAdd.to_ulong(); // update PC
+            Clock+=5;
+
+            if (printRegFile)
+                printRF();
+        }
+    }
+}
 
 int main()
 {
@@ -3222,21 +3231,37 @@ int main()
     cacheSize = 16;
     blockSize = 4;
     // char chr = 'a'; 
-    char chr2[5] = {'1','2','3','4','5'};
-    char chr3[5] = {'!','@','#','$','%'};
-    char chr4[5] = {'a','b','c','d','e'};
+    // char chr2[5] = {'1','2','3','4','5'};
+    // char chr3[5] = {'!','@','#','$','%'};
+    // char chr4[5] = {'a','b','c','d','e'};
 
 
-    // char *data = &chr;
-    char *data2 = &(chr2[0]);
-    char *data3 = &(chr3[0]);
-    char *data4 = &(chr4[0]);
+    // // char *data = &chr;
+    // char *data2 = &(chr2[0]);
+    // char *data3 = &(chr3[0]);
+    // char *data4 = &(chr4[0]);
+    cout<<"Input Cache Size\n";
+    cin>>cacheSize;
+    cout<<"Input Block Size\n";
+    cin>>blockSize;
+    cout<<"Input Policy (0 - LRU, 1 - FIFO, 2 - LFU)\n";
+    cin>>policy;
+    cout<<"Input Mapping (0 - Direct mapping, 1 - Fully Assosc, 2 - Set Assosc)\n";
+    cin>>mapping;
+
+    if(mapping == SET_ASSOSC)
+    {
+        cout<<"Input Set Assosciative mapping\n";
+        cin>>waysOfSetAssosc;
+    }
+    cache.InitialiseCache(cacheSize, blockSize, policy, mapping, waysOfSetAssosc );
 
     //intialise cache capacity, policy
     // Placeholder_Name(data2, 56, 1, 3);/*OUTPUT 2*/
     // cache.show_cache();
-    char *charray = Placeholder_Name(data2, 56, 0, 3);/*OUTPUT 2*/
-    cache.show_cache();
+    // char *charray = Placeholder_Name(data2, 56, 0, 3);/*OUTPUT 2*/
+    // cout<<"Input";
+    
     // Placeholder_Name(data3, 29, 1, 3);
     // Placeholder_Name(data4, 19, 1, 5);
     // Placeholder_Name(data2, 101, 1, 3);
@@ -3249,10 +3274,10 @@ int main()
     // charray++;
     // charray++;
 
-    cout<<*(charray);
-    // init_NoOps();
-    // make_file();
-    // RISCv_Processor();
+    // cout<<*(charray);
+    init_NoOps();
+    make_file();
+    RISCv_Processor();
    
     return 0;
 }
