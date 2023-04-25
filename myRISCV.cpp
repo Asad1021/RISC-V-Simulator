@@ -2353,7 +2353,7 @@ class Cache
         Full Assoc (1)
         Set Assoc (2),*/
         int mapping;
-        void WriteCache(int blockSize, int blockOffset, int bytesToRW, list<struct BlockParameters>::iterator &it, char *value, int index, int key)
+        void WriteCache_FA(int blockSize, int blockOffset, int bytesToRW, list<struct BlockParameters>::iterator &it, char *value, int index, int key)
         {
             if((blockSize - blockOffset) >= bytesToRW)
             {
@@ -2484,7 +2484,22 @@ class Cache
             }
 
         }
-        char* FullyAssosciative(int key, char *value, int blockOffset, int index, int RW, int bytesToRW)
+        void LFU_Evict(int fullAddress, int tag)
+        {
+            auto minIter = cache.begin(); 
+            for(auto it = cache.begin(); it != cache.end(); it++)
+            {
+                if(it->frequency < min)
+                {
+                    min = it->frequency;
+                    minIter = it;
+                }
+            }
+            MainMemory m1 ;
+            minIter->data  = m1.read(fullAddress, tag).data;
+
+        }
+        char* FullyAssosciative(int key, char *value, int blockOffset, int index, int RW, int bytesToRW, int fullAddress)
         {
             bool validBitPresent = false;
             switch(RW)
@@ -2575,9 +2590,19 @@ class Cache
                             }
                         }
                         else{
+                            //miss
                             //GO TO MAIN MEMORY
+                            if(LFU)
+                            {   
+                                LFU_Evict();
+                            }
+                            else 
+                            {
+                                MainMemory m1 ;
+                                it->data = m1.read().data;
+                            }
+                            // cache.begin = m1.read();
                             return &nullData;
-
                         }
                     }
                     return &nullData;
@@ -2867,7 +2892,7 @@ class Cache
                 break;
                 case 1:
                 {
-                    return FullyAssosciative(key, &na, blockOffset, index,0, bytesToRW);
+                    return FullyAssosciative(key, &na, blockOffset, index,0, bytesToRW, fullAddress);
                 }
                 break;
                 case 2:
