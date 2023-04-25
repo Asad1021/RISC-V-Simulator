@@ -2630,6 +2630,7 @@ class Cache
                             if(policy == LFU)
                             {   
                                 LFU_Evict(fullAddress, key, cache.begin(), cache.end());
+                                misstable[fullAddress] = false;
                             }
                             else 
                             {
@@ -2778,9 +2779,11 @@ class Cache
                         {
                         case LFU:
                             LFU_Evict(fullAddress, key, it, endOfSet);
+                            misstable[fullAddress] = false;
                             break;
                         case LRU:
                             LRU_Evict(fullAddress,key, it, endOfSet);
+                            misstable[fullAddress] = false;
                         default:
                             break;
                         }
