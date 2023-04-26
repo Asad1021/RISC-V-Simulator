@@ -158,6 +158,13 @@ int blockSize = 4; /*BYTES*/
 
 int No_Stals = 0, No_Lw_Sw = 0, No_ALU_inst = 0, No_Ctrl_Inst = 0, No_Data_Hazard = 0, No_Control_Hazard = 0, No_stals_due_to_dataHazard = 0, No_stals_due_to_ctrlHazard = 0,No_Branch_miss=0;
 
+int misses = 0;
+int hits = 0;
+int coldmisses = 0;
+int conflictmisses = 0;
+int capacitymisses = 0;
+
+
 #pragma region FILE_RELATED_DATA
 void printRF();
 //  stores the file name of the dump file
@@ -2080,13 +2087,6 @@ int policy = LRU;
 int mapping = DIRECT;
 int waysOfSetAssosc = 2;
 
-int misses = 0;
-int hits = 0;
-int coldmisses = 0;
-int conflictmisses = 0;
-int capacitymisses = 0;
-
-
 class Cache 
 {
     private:
@@ -2988,6 +2988,15 @@ class Fetch
             cout << "Number of stalls due to data hazards: " << No_stals_due_to_dataHazard << endl;
             cout << "Number of stalls due to control hazards: " << No_stals_due_to_ctrlHazard << endl;
             cout << "Number of branch miss prediction: " << No_Branch_miss << endl;
+
+            cout<<endl <<"CacheParameters are : "<<endl<<endl;
+
+            cout<<"No. of misses:"<<misses<<endl;
+            cout<<"No. of coldmisses:"<<coldmisses<<endl;
+            cout<<"No. of conflictmisses:"<<conflictmisses<<endl;
+            cout<<"No. of capacitymisses:"<<capacitymisses<<endl;
+
+
             
             //COUT CACHE
             cout<<"\nCACHE IS\n";
