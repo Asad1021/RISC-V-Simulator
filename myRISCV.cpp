@@ -7,7 +7,6 @@
 #include <cmath>
 #include <iomanip>
 #include <unordered_map>
-#include <unordered_map>
 // #include <bits/stdc++.h>
 #include <list>
 #include <utility> // needed for std::pair
@@ -3229,9 +3228,9 @@ int main()
     printRegFile = false;
     printPipe = false;
     //miss = 0;
-    cacheSize = 16;
-    blockSize = 4;
-    // char chr = 'a'; 
+    // cacheSize = 16;
+    // blockSize = 4;
+    // // char chr = 'a'; 
     // char chr2[5] = {'1','2','3','4','5'};
     // char chr3[5] = {'!','@','#','$','%'};
     // char chr4[5] = {'a','b','c','d','e'};
