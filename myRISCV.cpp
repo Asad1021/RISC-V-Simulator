@@ -6,7 +6,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <iomanip>
-#include <map>
+#include <unordered_map>
 // #include <bits/stdc++.h>
 #include <list>
 #include <utility> // needed for std::pair
@@ -2013,7 +2013,7 @@ void init_NoOps()
 
 #pragma region MainMemory
 
-static class MainMemory
+class MainMemory
 {
     private:
 
@@ -3225,12 +3225,18 @@ int main()
     // cin >> printPipe;
     ispipeLine=true;
     DataForwarding = false;
-    printRegFile = true;
-    printPipe = true;
+    printRegFile = false;
+    printPipe = false;
     //miss = 0;
+<<<<<<< Updated upstream
     cacheSize = 16;
     blockSize = 4;
     // char chr = 'a'; 
+=======
+    // cacheSize = 16;
+    // blockSize = 4;
+    // // char chr = 'a'; 
+>>>>>>> Stashed changes
     // char chr2[5] = {'1','2','3','4','5'};
     // char chr3[5] = {'!','@','#','$','%'};
     // char chr4[5] = {'a','b','c','d','e'};
@@ -3240,6 +3246,7 @@ int main()
     // char *data2 = &(chr2[0]);
     // char *data3 = &(chr3[0]);
     // char *data4 = &(chr4[0]);
+<<<<<<< Updated upstream
     cout<<"Input Cache Size\n";
     cin>>cacheSize;
     cout<<"Input Block Size\n";
@@ -3262,6 +3269,14 @@ int main()
     // char *charray = Placeholder_Name(data2, 56, 0, 3);/*OUTPUT 2*/
     // cout<<"Input";
     
+=======
+
+    // //intialise cache capacity, policy
+    // // Placeholder_Name(data2, 56, 1, 3);/*OUTPUT 2*/
+    // // cache.show_cache();
+    // char *charray = Placeholder_Name(data2, 56, 0, 3);/*OUTPUT 2*/
+    // cache.show_cache();
+>>>>>>> Stashed changes
     // Placeholder_Name(data3, 29, 1, 3);
     // Placeholder_Name(data4, 19, 1, 5);
     // Placeholder_Name(data2, 101, 1, 3);
