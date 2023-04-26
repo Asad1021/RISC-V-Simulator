@@ -7,6 +7,7 @@
 #include <cmath>
 #include <iomanip>
 #include <unordered_map>
+#include <unordered_map>
 // #include <bits/stdc++.h>
 #include <list>
 #include <utility> // needed for std::pair
@@ -3228,15 +3229,9 @@ int main()
     printRegFile = false;
     printPipe = false;
     //miss = 0;
-<<<<<<< Updated upstream
     cacheSize = 16;
     blockSize = 4;
     // char chr = 'a'; 
-=======
-    // cacheSize = 16;
-    // blockSize = 4;
-    // // char chr = 'a'; 
->>>>>>> Stashed changes
     // char chr2[5] = {'1','2','3','4','5'};
     // char chr3[5] = {'!','@','#','$','%'};
     // char chr4[5] = {'a','b','c','d','e'};
@@ -3246,15 +3241,17 @@ int main()
     // char *data2 = &(chr2[0]);
     // char *data3 = &(chr3[0]);
     // char *data4 = &(chr4[0]);
-<<<<<<< Updated upstream
-    cout<<"Input Cache Size\n";
-    cin>>cacheSize;
-    cout<<"Input Block Size\n";
-    cin>>blockSize;
-    cout<<"Input Policy (0 - LRU, 1 - FIFO, 2 - LFU)\n";
-    cin>>policy;
-    cout<<"Input Mapping (0 - Direct mapping, 1 - Fully Assosc, 2 - Set Assosc)\n";
-    cin>>mapping;
+    // cout<<"Input Cache Size\n";
+    // cin>>cacheSize;
+    // cout<<"Input Block Size\n";
+    // cin>>blockSize;
+    // cout<<"Input Policy (0 - LRU, 1 - FIFO, 2 - LFU)\n";
+    // cin>>policy;
+    // cout<<"Input Mapping (0 - Direct mapping, 1 - Fully Assosc, 2 - Set Assosc)\n";
+    // cin>>mapping;
+
+    policy = 0;
+    mapping = 0;
 
     if(mapping == SET_ASSOSC)
     {
@@ -3263,20 +3260,14 @@ int main()
     }
     cache.InitialiseCache(cacheSize, blockSize, policy, mapping, waysOfSetAssosc );
 
-    //intialise cache capacity, policy
-    // Placeholder_Name(data2, 56, 1, 3);/*OUTPUT 2*/
-    // cache.show_cache();
-    // char *charray = Placeholder_Name(data2, 56, 0, 3);/*OUTPUT 2*/
-    // cout<<"Input";
-    
-=======
-
     // //intialise cache capacity, policy
     // // Placeholder_Name(data2, 56, 1, 3);/*OUTPUT 2*/
     // // cache.show_cache();
     // char *charray = Placeholder_Name(data2, 56, 0, 3);/*OUTPUT 2*/
     // cache.show_cache();
->>>>>>> Stashed changes
+    // char *charray = Placeholder_Name(data2, 56, 0, 3);/*OUTPUT 2*/
+    // cout<<"Input";
+    
     // Placeholder_Name(data3, 29, 1, 3);
     // Placeholder_Name(data4, 19, 1, 5);
     // Placeholder_Name(data2, 101, 1, 3);
